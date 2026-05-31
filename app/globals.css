@@ -117,7 +117,6 @@ body {
   align-items: center;
   justify-content: center;
   text-align: center;
-  border: 3px solid #fff;
   transform: rotate(-12deg);
   /* 16-конечная звезда (32 вершины), высота лучей уменьшена вдвое:
      внешний радиус 50%, внутренний 35% (вместо 20%) */
@@ -131,7 +130,8 @@ body {
     0% 50%, 15.7% 43.2%, 3.8% 30.9%, 20.9% 30.6%,
     14.6% 14.6%, 30.6% 20.9%, 30.9% 3.8%, 43.2% 15.7%
   );
-  box-shadow: 2px 2px 0 #000;
+  /* drop-shadow повторяет контур звезды (в отличие от box-shadow при clip-path) */
+  filter: drop-shadow(2px 2px 0 rgba(0, 0, 0, 0.45));
 }
 
 /* ---------- Цветные «ленты»-карточки ---------- */
