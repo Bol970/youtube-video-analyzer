@@ -21,8 +21,6 @@ export default function Home() {
           <a href="https://openrouter.ai" target="_blank" rel="noreferrer">
             OpenRouter LLM
           </a>
-          <br />
-          Учебный проект курса «Разработка с AI на практике» · {new Date().getFullYear()}
         </div>
       </main>
     </div>
