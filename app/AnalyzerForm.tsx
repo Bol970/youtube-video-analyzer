@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MODES, type AnalysisMode } from "@/lib/prompts";
 import { renderMarkdown } from "@/lib/markdown";
+import LangSelect from "./LangSelect";
 
 interface AnalyzeResponse {
   videoId: string;
@@ -156,13 +157,7 @@ export default function AnalyzerForm() {
               <label className="field-label" htmlFor="lang">
                 Язык транскрипта
               </label>
-              <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
-                {LANGUAGES.map((l) => (
-                  <option key={l.code || "auto"} value={l.code}>
-                    {l.name}
-                  </option>
-                ))}
-              </select>
+              <LangSelect id="lang" value={lang} options={LANGUAGES} onChange={setLang} />
             </div>
           </div>
 

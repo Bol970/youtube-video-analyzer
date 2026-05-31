@@ -187,6 +187,65 @@ textarea {
   min-height: 64px;
 }
 
+/* Кастомный выпадающий список языков */
+.cselect {
+  position: relative;
+}
+.cselect-trigger {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  padding: 9px 10px;
+  background: #fff;
+  color: #000;
+  text-align: left;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+}
+.cselect-trigger:focus {
+  background: #fffbe6;
+  outline: none;
+}
+.cselect-arrow {
+  font-size: 12px;
+}
+.cselect-list {
+  position: absolute;
+  top: calc(100% + 2px);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 280px;
+  overflow-y: auto;
+  background: #fff;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.5);
+}
+.cselect-option {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  padding: 8px 24px 8px 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.cselect-option.active {
+  background: var(--yellow);
+}
+.cselect-option.selected {
+  font-weight: bold;
+}
+.cselect-option.selected::before {
+  content: "✓ ";
+}
+
 .modes {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
