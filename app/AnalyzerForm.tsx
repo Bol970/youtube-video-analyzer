@@ -4,6 +4,7 @@ import { useState } from "react";
 import { MODES, type AnalysisMode } from "@/lib/prompts";
 import { renderMarkdown } from "@/lib/markdown";
 import LangSelect from "./LangSelect";
+import Loader from "./Loader";
 
 interface AnalyzeResponse {
   videoId: string;
@@ -203,14 +204,7 @@ export default function AnalyzerForm() {
         </form>
       </div>
 
-      {loading && (
-        <div className="card bevel-out">
-          <p className="loader">
-            Достаю транскрипт через Supadata и анализирую через нейросеть
-          </p>
-          <p className="note">Длинное видео может обрабатываться до минуты.</p>
-        </div>
-      )}
+      {loading && <Loader />}
 
       {error && !loading && <div className="error-box">⚠ {error}</div>}
 
