@@ -1,0 +1,367 @@
+/* ===========================================================
+   Ретро-дизайн в стиле «Dell 1996» / каталоги PC + Windows 95:
+   чёрная рамка страницы, цветные блок-карточки, рубленые
+   заголовки (Arial Black) и Times для текста, объёмные кнопки.
+   =========================================================== */
+
+:root {
+  --ink: #111111;
+  --paper: #f4f1e8;        /* кремовая бумага каталога */
+  --panel: #c0c0c0;        /* win95 серый */
+  --panel-light: #ffffff;
+  --panel-dark: #808080;
+  --panel-darker: #404040;
+  --navy: #0a1a6b;
+  --red: #c1121f;
+  --blue: #1d4ed8;
+  --yellow: #f4c20d;
+  --teal: #0c8a7b;
+  --link: #0000cc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background: #000000;
+  /* лёгкий «телевизионный» паттерн фона */
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(255, 255, 255, 0.03) 0px,
+    rgba(255, 255, 255, 0.03) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  font-family: "Times New Roman", Times, Georgia, serif;
+  color: var(--ink);
+  font-size: 17px;
+  line-height: 1.5;
+}
+
+/* Объёмные рамки в стиле Win95 */
+.bevel-out {
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-darker) var(--panel-darker) var(--panel-light);
+}
+.bevel-in {
+  border: 2px solid;
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+}
+
+/* ---------- Каркас страницы ---------- */
+.page-frame {
+  max-width: 920px;
+  margin: 18px auto;
+  background: var(--paper);
+  border: 6px solid #000;
+  box-shadow: 0 0 0 2px #000, 12px 12px 0 0 rgba(0, 0, 0, 0.55);
+}
+
+.inner {
+  padding: 22px;
+}
+
+/* ---------- Шапка ---------- */
+.masthead {
+  background: var(--navy);
+  color: #fff;
+  border-bottom: 4px solid #000;
+  padding: 18px 22px;
+  position: relative;
+  overflow: hidden;
+}
+
+.masthead h1 {
+  font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+  font-weight: 900;
+  letter-spacing: -1px;
+  margin: 0;
+  font-size: clamp(28px, 6vw, 46px);
+  text-transform: uppercase;
+  text-shadow: 3px 3px 0 #000;
+  line-height: 0.95;
+}
+
+.masthead .tag {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  margin-top: 8px;
+  background: var(--yellow);
+  color: #000;
+  display: inline-block;
+  padding: 3px 10px;
+  font-weight: bold;
+  border: 2px solid #000;
+}
+
+/* Звезда «NEW!» */
+.burst {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  width: 84px;
+  height: 84px;
+  background: var(--red);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  font-weight: 900;
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border: 3px solid #fff;
+  transform: rotate(-12deg);
+  clip-path: polygon(
+    50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%,
+    50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%
+  );
+  box-shadow: 2px 2px 0 #000;
+}
+
+/* ---------- Цветные «ленты»-карточки ---------- */
+.ribbon {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 6px 12px;
+  border: 3px solid #000;
+  display: inline-block;
+  margin: 0 0 12px;
+  font-size: 15px;
+  letter-spacing: 0.5px;
+  box-shadow: 3px 3px 0 #000;
+}
+.ribbon.red { background: var(--red); }
+.ribbon.blue { background: var(--blue); }
+.ribbon.teal { background: var(--teal); }
+
+.card {
+  background: var(--panel);
+  padding: 16px;
+  margin: 0 0 22px;
+}
+
+/* ---------- Форма ---------- */
+.field-label {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  font-size: 14px;
+  display: block;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+input[type="text"],
+input[type="url"],
+select,
+textarea {
+  width: 100%;
+  font-family: "Courier New", monospace;
+  font-size: 16px;
+  padding: 9px 10px;
+  background: #fff;
+  border: 2px solid;
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+  outline: none;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  background: #fffbe6;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+.modes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mode-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--paper);
+  padding: 10px;
+  cursor: pointer;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-darker) var(--panel-darker) var(--panel-light);
+}
+.mode-option.active {
+  background: var(--yellow);
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+}
+.mode-option input {
+  width: auto;
+}
+
+/* ---------- Кнопка ---------- */
+.btn {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 18px;
+  letter-spacing: 1px;
+  color: #000;
+  background: var(--yellow);
+  padding: 12px 26px;
+  cursor: pointer;
+  border: 3px solid #000;
+  box-shadow: 4px 4px 0 #000;
+}
+.btn:hover {
+  background: #ffd633;
+}
+.btn:active {
+  transform: translate(4px, 4px);
+  box-shadow: 0 0 0 #000;
+}
+.btn:disabled {
+  background: var(--panel);
+  color: var(--panel-dark);
+  cursor: not-allowed;
+  box-shadow: 4px 4px 0 var(--panel-dark);
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: flex-end;
+}
+.grow {
+  flex: 1 1 260px;
+}
+
+/* ---------- Результат ---------- */
+.result {
+  background: #fff;
+  padding: 18px 20px;
+  border: 2px solid;
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+}
+.result h1,
+.result h2,
+.result h3 {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--navy);
+  margin: 18px 0 8px;
+  line-height: 1.2;
+}
+.result h1 { font-size: 24px; }
+.result h2 { font-size: 20px; }
+.result h3 { font-size: 17px; }
+.result ul,
+.result ol {
+  padding-left: 26px;
+}
+.result li { margin: 4px 0; }
+.result p { margin: 10px 0; }
+.result code {
+  font-family: "Courier New", monospace;
+  background: var(--paper);
+  padding: 1px 4px;
+}
+.result strong { color: #000; }
+
+.video-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 3px solid #000;
+  background: #000;
+  margin-bottom: 16px;
+}
+.video-embed iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+/* ---------- Сервисные блоки ---------- */
+.error-box {
+  background: var(--red);
+  color: #fff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  padding: 12px 14px;
+  border: 3px solid #000;
+  box-shadow: 3px 3px 0 #000;
+  margin: 0 0 18px;
+}
+
+.note {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  color: #333;
+  margin-top: 6px;
+}
+
+.meta-line {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #444;
+  margin-bottom: 10px;
+}
+
+.loader {
+  font-family: "Courier New", monospace;
+  font-size: 15px;
+}
+.loader::after {
+  content: "▮";
+  animation: blink 1s steps(2, start) infinite;
+}
+@keyframes blink {
+  to { visibility: hidden; }
+}
+
+.footer {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  text-align: center;
+  color: #555;
+  border-top: 3px double #000;
+  margin-top: 22px;
+  padding-top: 14px;
+}
+.footer a { color: var(--link); }
+
+.steps {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding: 0;
+  list-style: none;
+}
+.steps li {
+  background: #fff;
+  padding: 6px 10px;
+  border: 2px solid #000;
+}
+.steps b { color: var(--red); }
