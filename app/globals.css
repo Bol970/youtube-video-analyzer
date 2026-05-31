@@ -283,6 +283,31 @@ textarea {
 }
 .result strong { color: #000; }
 
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 12px;
+}
+.btn-mini {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  font-size: 13px;
+  text-transform: uppercase;
+  color: #000;
+  background: var(--panel);
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 2px solid;
+  border-color: var(--panel-light) var(--panel-darker) var(--panel-darker) var(--panel-light);
+}
+.btn-mini:hover {
+  background: #d8d8d8;
+}
+.btn-mini:active {
+  border-color: var(--panel-darker) var(--panel-light) var(--panel-light) var(--panel-darker);
+}
+
 .video-embed {
   position: relative;
   width: 100%;

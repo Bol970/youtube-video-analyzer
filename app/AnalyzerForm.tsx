@@ -57,6 +57,7 @@ export default function AnalyzerForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const needsQuestion = MODES.find((m) => m.id === mode)?.needsQuestion;
 
@@ -92,6 +93,38 @@ export default function AnalyzerForm() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleCopy() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.analysis);
+    } catch {
+      // Фолбэк для старых браузеров / небезопасного контекста
+      const ta = document.createElement("textarea");
+      ta.value = result.analysis;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleDownload() {
+    if (!result) return;
+    const blob = new Blob([result.analysis], { type: "text/plain;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `analysis-${result.videoId}-${result.mode}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(href);
   }
 
   return (
@@ -215,6 +248,15 @@ export default function AnalyzerForm() {
                 всё равно сделан на русском.
               </div>
             )}
+
+          <div className="toolbar">
+            <button type="button" className="btn-mini" onClick={handleCopy}>
+              {copied ? "✓ Скопировано" : "📋 Скопировать результат"}
+            </button>
+            <button type="button" className="btn-mini" onClick={handleDownload}>
+              ⬇ Скачать .txt
+            </button>
+          </div>
 
           <div
             className="result"
