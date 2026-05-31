@@ -8,8 +8,10 @@ interface AnalyzeResponse {
   videoId: string;
   mode: AnalysisMode;
   lang: string;
+  availableLangs: string[];
   truncated: boolean;
   analysis: string;
+  requestedLang?: string; // что выбрал пользователь (добавляем на клиенте)
 }
 
 const MODE_TITLES: Record<AnalysisMode, string> = {
@@ -19,9 +21,38 @@ const MODE_TITLES: Record<AnalysisMode, string> = {
   qa: "Ответ на вопрос",
 };
 
+// Языки транскрипта. Значение "" = «Авто» (первый доступный у видео).
+const LANGUAGES: { code: string; name: string }[] = [
+  { code: "ru", name: "Русский" },
+  { code: "", name: "Авто (первый доступный)" },
+  { code: "en", name: "English" },
+  { code: "uk", name: "Українська" },
+  { code: "de", name: "Deutsch" },
+  { code: "es", name: "Español" },
+  { code: "fr", name: "Français" },
+  { code: "it", name: "Italiano" },
+  { code: "pt", name: "Português" },
+  { code: "pl", name: "Polski" },
+  { code: "tr", name: "Türkçe" },
+  { code: "ja", name: "日本語" },
+  { code: "ko", name: "한국어" },
+  { code: "zh", name: "中文" },
+  { code: "ar", name: "العربية" },
+  { code: "hi", name: "हिन्दी" },
+];
+
+const LANG_NAMES: Record<string, string> = Object.fromEntries(
+  LANGUAGES.filter((l) => l.code).map((l) => [l.code, l.name])
+);
+
+function langLabel(code: string): string {
+  return LANG_NAMES[code] || code || "—";
+}
+
 export default function AnalyzerForm() {
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<AnalysisMode>("summary");
+  const [lang, setLang] = useState("ru"); // язык транскрипта, по умолчанию русский
   const [question, setQuestion] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,13 +79,13 @@ export default function AnalyzerForm() {
       const res = await fetch("/api/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, mode, question }),
+        body: JSON.stringify({ url, mode, question, lang }),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data?.error || "Что-то пошло не так. Попробуйте ещё раз.");
       } else {
-        setResult(data as AnalyzeResponse);
+        setResult({ ...(data as AnalyzeResponse), requestedLang: lang });
       }
     } catch {
       setError("Не удалось отправить запрос. Проверьте соединение.");
@@ -87,6 +118,18 @@ export default function AnalyzerForm() {
                 onChange={(e) => setUrl(e.target.value)}
                 autoComplete="off"
               />
+            </div>
+            <div style={{ flex: "0 0 200px" }}>
+              <label className="field-label" htmlFor="lang">
+                Язык транскрипта
+              </label>
+              <select id="lang" value={lang} onChange={(e) => setLang(e.target.value)}>
+                {LANGUAGES.map((l) => (
+                  <option key={l.code || "auto"} value={l.code}>
+                    {l.name}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 
@@ -157,9 +200,21 @@ export default function AnalyzerForm() {
           </div>
 
           <div className="meta-line">
-            Язык транскрипта: {result.lang || "—"}
+            Язык транскрипта: {langLabel(result.lang)}
+            {result.availableLangs?.length > 0 &&
+              ` · доступны: ${result.availableLangs.join(", ")}`}
             {result.truncated && " · транскрипт обрезан до 120 000 символов"}
           </div>
+
+          {result.requestedLang &&
+            result.lang &&
+            result.requestedLang !== result.lang && (
+              <div className="note" style={{ marginBottom: 10 }}>
+                ⓘ Транскрипта на языке «{langLabel(result.requestedLang)}» у этого
+                видео нет — показан доступный («{langLabel(result.lang)}»). Анализ
+                всё равно сделан на русском.
+              </div>
+            )}
 
           <div
             className="result"
