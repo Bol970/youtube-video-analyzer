@@ -648,3 +648,11 @@ a.btn-mini {
   font-size: 13px;
   color: var(--panel-darker);
 }
+
+.history-search {
+  margin-bottom: 12px;
+}
+.history-search input {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 15px;
+}

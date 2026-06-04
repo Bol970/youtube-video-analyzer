@@ -13,6 +13,7 @@ interface AnalysisRow {
   mode: AnalysisMode;
   question: string | null;
   lang: string | null;
+  title: string | null;
   analysis: string;
   created_at: string;
 }
@@ -44,6 +45,8 @@ export default function HistoryList() {
   const [page, setPage] = useState(0); // 0-based
   const [from, setFrom] = useState(""); // YYYY-MM-DD
   const [to, setTo] = useState("");
+  const [searchInput, setSearchInput] = useState(""); // что вводят
+  const [search, setSearch] = useState(""); // применённое (с дебаунсом)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
@@ -59,13 +62,19 @@ export default function HistoryList() {
 
     let q = supabase
       .from("analyses")
-      .select("id, video_id, mode, question, lang, analysis, created_at", {
+      .select("id, video_id, mode, question, lang, title, analysis, created_at", {
         count: "exact",
       })
       .order("created_at", { ascending: false });
 
     if (from) q = q.gte("created_at", `${from}T00:00:00.000Z`);
     if (to) q = q.lte("created_at", `${to}T23:59:59.999Z`);
+    if (search.trim()) {
+      // Подстрочный поиск (ilike) по названию И тексту разбора — работает на
+      // любом языке. Убираем символы, ломающие синтаксис or() в PostgREST.
+      const term = search.trim().replace(/[,()*"\\]/g, " ");
+      q = q.or(`title.ilike.%${term}%,analysis.ilike.%${term}%`);
+    }
     q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
 
     const { data, count, error: selectError } = await q;
@@ -76,16 +85,26 @@ export default function HistoryList() {
       setTotal(count ?? 0);
     }
     setLoading(false);
-  }, [user, page, from, to]);
+  }, [user, page, from, to, search]);
+
+  // Дебаунс ввода поиска (0.4с) + сброс на первую страницу.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(0);
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchInput]);
 
   useEffect(() => {
     if (!authLoading && user) load();
     if (!authLoading && !user) setLoading(false);
   }, [authLoading, user, load]);
 
-  // Подтягиваем названия видео (через наш /api/title), по одному на video_id.
+  // Для строк без сохранённого названия подтягиваем его через /api/title.
   useEffect(() => {
     rows.forEach((row) => {
+      if (row.title) return; // название уже в БД
       if (fetchedTitles.current.has(row.video_id)) return;
       fetchedTitles.current.add(row.video_id);
       fetch(`/api/title?v=${row.video_id}`)
@@ -159,10 +178,20 @@ export default function HistoryList() {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-  const hasFilter = Boolean(from || to);
+  const hasFilter = Boolean(from || to || search);
 
   return (
     <div className="card bevel-out">
+      {/* Поиск по названию и тексту разбора */}
+      <div className="history-search">
+        <input
+          type="text"
+          placeholder="🔍 Поиск по названию и тексту разбора…"
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+        />
+      </div>
+
       {/* Фильтр по дате */}
       <div className="history-filter">
         <label className="field-label" htmlFor="from">С даты</label>
@@ -180,7 +209,14 @@ export default function HistoryList() {
           onChange={(e) => applyFilter(from, e.target.value)}
         />
         {hasFilter && (
-          <button type="button" className="btn-mini" onClick={() => applyFilter("", "")}>
+          <button
+            type="button"
+            className="btn-mini"
+            onClick={() => {
+              setSearchInput("");
+              applyFilter("", "");
+            }}
+          >
             Сбросить
           </button>
         )}
@@ -193,7 +229,7 @@ export default function HistoryList() {
       ) : rows.length === 0 ? (
         <p>
           {hasFilter ? (
-            "За выбранный период разборов нет."
+            "Ничего не найдено по заданным условиям."
           ) : (
             <>
               Пока пусто. <Link href="/">Разобрать первое видео →</Link>
@@ -204,7 +240,7 @@ export default function HistoryList() {
         <>
           <ul className="history-list">
             {rows.map((row) => {
-              const title = titles[row.video_id];
+              const title = row.title ?? titles[row.video_id];
               return (
                 <li key={row.id} className="history-item bevel-in">
                   <div className="history-head">

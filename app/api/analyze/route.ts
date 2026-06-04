@@ -122,6 +122,21 @@ export async function POST(req: NextRequest) {
     const messages = buildMessages(mode, plain, timed, question);
     const analysis = await chatCompletion(messages);
 
+    // 3.5. Название видео (для истории и поиска) — необязательно.
+    let title: string | null = null;
+    try {
+      const tr = await fetch(
+        `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`,
+        { cache: "no-store" }
+      );
+      if (tr.ok) {
+        const td = await tr.json();
+        title = typeof td?.title === "string" ? td.title : null;
+      }
+    } catch {
+      // название не критично — оставим null
+    }
+
     // 4. Сохраняем разбор от имени пользователя (RLS: user_id = auth.uid()).
     //    Это же и есть единица учёта квоты.
     await supabase.from("analyses").insert({
@@ -130,6 +145,7 @@ export async function POST(req: NextRequest) {
       mode,
       question: mode === "qa" ? question : null,
       lang: transcript.lang || null,
+      title,
       analysis,
     });
 
