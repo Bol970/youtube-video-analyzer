@@ -15,7 +15,7 @@ export default function AuthBar() {
         <>
           {usage && (
             <span className="auth-quota">
-              Разборов: <b>{Math.max(0, usage.limit - usage.used)}</b> из {usage.limit}
+              Разборов: <b>{Math.min(usage.used, usage.limit)}</b> из {usage.limit}
             </span>
           )}
           <Link href="/history">Мои разборы</Link>
