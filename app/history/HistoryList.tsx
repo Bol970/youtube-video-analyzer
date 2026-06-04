@@ -125,18 +125,25 @@ export default function HistoryList() {
         {rows.map((row) => (
           <li key={row.id} className="history-item bevel-in">
             <div className="history-head">
-              <div>
+              <a
+                className="history-thumb"
+                href={`https://www.youtube.com/watch?v=${row.video_id}`}
+                target="_blank"
+                rel="noreferrer"
+                title="Открыть видео на YouTube"
+              >
+                <img
+                  src={`https://img.youtube.com/vi/${row.video_id}/mqdefault.jpg`}
+                  alt="Превью видео"
+                  loading="lazy"
+                />
+              </a>
+              <div className="history-info">
                 <b>{MODE_TITLES[row.mode] ?? row.mode}</b>
                 {row.question && <span className="history-q"> — «{row.question}»</span>}
                 <div className="meta-line">
-                  <a
-                    href={`https://www.youtube.com/watch?v=${row.video_id}`}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {row.video_id}
-                  </a>
-                  {row.lang ? ` · ${row.lang}` : ""} · {formatDate(row.created_at)}
+                  {row.lang ? `${row.lang} · ` : ""}
+                  {formatDate(row.created_at)}
                 </div>
               </div>
               <div className="toolbar">
