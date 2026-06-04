@@ -567,15 +567,22 @@ a.btn-mini {
   font-size: 20px;
 }
 .plans {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
   gap: 14px;
-  flex-wrap: wrap;
 }
 .plan {
-  flex: 1 1 180px;
   background: #fff;
   padding: 16px;
   text-align: center;
+}
+/* Кнопка на всю ширину карточки — смена текста («Выбрать» ↔ «Текущий тариф»)
+   не меняет ширину и не двигает вёрстку. */
+.plan .btn {
+  width: 100%;
+  font-size: 14px;
+  letter-spacing: 0.5px;
+  padding: 10px 8px;
 }
 .plan-current {
   outline: 3px solid var(--teal);
