@@ -613,3 +613,38 @@ a.btn-mini {
   font-size: 14px;
   margin-bottom: 14px;
 }
+
+/* ===== История: фильтр по дате, заголовок видео, пагинация ===== */
+.history-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.history-filter .field-label {
+  display: inline;
+  margin: 0;
+}
+.history-filter input[type="date"] {
+  width: auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  padding: 6px 8px;
+}
+.history-title {
+  display: block;
+  line-height: 1.25;
+}
+.pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  margin-top: 16px;
+}
+.pager-info {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  color: var(--panel-darker);
+}

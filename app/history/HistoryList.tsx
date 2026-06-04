@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import type { AnalysisMode } from "@/lib/prompts";
 import { renderMarkdown } from "@/lib/markdown";
@@ -16,6 +16,8 @@ interface AnalysisRow {
   analysis: string;
   created_at: string;
 }
+
+const PAGE_SIZE = 10;
 
 const MODE_TITLES: Record<AnalysisMode, string> = {
   summary: "Краткое содержание",
@@ -38,50 +40,86 @@ function formatDate(iso: string): string {
 export default function HistoryList() {
   const { user, loading: authLoading, configured } = useAuth();
   const [rows, setRows] = useState<AnalysisRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0); // 0-based
+  const [from, setFrom] = useState(""); // YYYY-MM-DD
+  const [to, setTo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [titles, setTitles] = useState<Record<string, string | null>>({});
+  const fetchedTitles = useRef<Set<string>>(new Set());
 
   const load = useCallback(async () => {
     const supabase = getSupabaseClient();
     if (!supabase || !user) return;
     setLoading(true);
     setError(null);
-    const { data, error: selectError } = await supabase
+
+    let q = supabase
       .from("analyses")
-      .select("id, video_id, mode, question, lang, analysis, created_at")
+      .select("id, video_id, mode, question, lang, analysis, created_at", {
+        count: "exact",
+      })
       .order("created_at", { ascending: false });
+
+    if (from) q = q.gte("created_at", `${from}T00:00:00.000Z`);
+    if (to) q = q.lte("created_at", `${to}T23:59:59.999Z`);
+    q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
+
+    const { data, count, error: selectError } = await q;
     if (selectError) {
       setError("Не удалось загрузить разборы.");
     } else {
       setRows((data ?? []) as AnalysisRow[]);
+      setTotal(count ?? 0);
     }
     setLoading(false);
-  }, [user]);
+  }, [user, page, from, to]);
 
   useEffect(() => {
     if (!authLoading && user) load();
     if (!authLoading && !user) setLoading(false);
   }, [authLoading, user, load]);
 
+  // Подтягиваем названия видео (через наш /api/title), по одному на video_id.
+  useEffect(() => {
+    rows.forEach((row) => {
+      if (fetchedTitles.current.has(row.video_id)) return;
+      fetchedTitles.current.add(row.video_id);
+      fetch(`/api/title?v=${row.video_id}`)
+        .then((r) => r.json())
+        .then((d) => setTitles((prev) => ({ ...prev, [row.video_id]: d?.title ?? null })))
+        .catch(() => setTitles((prev) => ({ ...prev, [row.video_id]: null })));
+    });
+  }, [rows]);
+
   async function handleDelete(id: string) {
     const supabase = getSupabaseClient();
     if (!supabase) return;
     const { error: deleteError } = await supabase.from("analyses").delete().eq("id", id);
-    if (!deleteError) setRows((prev) => prev.filter((r) => r.id !== id));
+    if (!deleteError) {
+      // Если удалили последнюю строку на странице — шагнём назад.
+      if (rows.length === 1 && page > 0) setPage((p) => p - 1);
+      else load();
+    }
+  }
+
+  function applyFilter(nextFrom: string, nextTo: string) {
+    setFrom(nextFrom);
+    setTo(nextTo);
+    setPage(0);
   }
 
   if (!configured) {
     return (
       <div className="card bevel-out">
-        <p className="note">
-          ⓘ Раздел недоступен: не заданы ключи Supabase.
-        </p>
+        <p className="note">ⓘ Раздел недоступен: не заданы ключи Supabase.</p>
       </div>
     );
   }
 
-  if (authLoading || loading) {
+  if (authLoading) {
     return (
       <div className="card bevel-out">
         <p>Загрузка…</p>
@@ -100,78 +138,135 @@ export default function HistoryList() {
     );
   }
 
-  if (error) {
-    return (
-      <div className="card bevel-out">
-        <div className="error-box">⚠ {error}</div>
-      </div>
-    );
-  }
-
-  if (rows.length === 0) {
-    return (
-      <div className="card bevel-out">
-        <p>
-          Пока пусто. <Link href="/">Разобрать первое видео →</Link>
-        </p>
-      </div>
-    );
-  }
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const hasFilter = Boolean(from || to);
 
   return (
     <div className="card bevel-out">
-      <ul className="history-list">
-        {rows.map((row) => (
-          <li key={row.id} className="history-item bevel-in">
-            <div className="history-head">
-              <a
-                className="history-thumb"
-                href={`https://www.youtube.com/watch?v=${row.video_id}`}
-                target="_blank"
-                rel="noreferrer"
-                title="Открыть видео на YouTube"
+      {/* Фильтр по дате */}
+      <div className="history-filter">
+        <label className="field-label" htmlFor="from">С даты</label>
+        <input
+          id="from"
+          type="date"
+          value={from}
+          onChange={(e) => applyFilter(e.target.value, to)}
+        />
+        <label className="field-label" htmlFor="to">По дату</label>
+        <input
+          id="to"
+          type="date"
+          value={to}
+          onChange={(e) => applyFilter(from, e.target.value)}
+        />
+        {hasFilter && (
+          <button type="button" className="btn-mini" onClick={() => applyFilter("", "")}>
+            Сбросить
+          </button>
+        )}
+      </div>
+
+      {loading ? (
+        <p>Загрузка…</p>
+      ) : error ? (
+        <div className="error-box">⚠ {error}</div>
+      ) : rows.length === 0 ? (
+        <p>
+          {hasFilter ? (
+            "За выбранный период разборов нет."
+          ) : (
+            <>
+              Пока пусто. <Link href="/">Разобрать первое видео →</Link>
+            </>
+          )}
+        </p>
+      ) : (
+        <>
+          <ul className="history-list">
+            {rows.map((row) => {
+              const title = titles[row.video_id];
+              return (
+                <li key={row.id} className="history-item bevel-in">
+                  <div className="history-head">
+                    <a
+                      className="history-thumb"
+                      href={`https://www.youtube.com/watch?v=${row.video_id}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      title="Открыть видео на YouTube"
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${row.video_id}/mqdefault.jpg`}
+                        alt="Превью видео"
+                        loading="lazy"
+                      />
+                    </a>
+                    <div className="history-info">
+                      <b className="history-title">
+                        {title === undefined ? "Загрузка названия…" : title || row.video_id}
+                      </b>
+                      {row.question && (
+                        <span className="history-q"> — «{row.question}»</span>
+                      )}
+                      <div className="meta-line">
+                        {MODE_TITLES[row.mode] ?? row.mode}
+                        {row.lang ? ` · ${row.lang}` : ""} · {formatDate(row.created_at)}
+                      </div>
+                    </div>
+                    <div className="toolbar">
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => setOpenId(openId === row.id ? null : row.id)}
+                      >
+                        {openId === row.id ? "Свернуть" : "Открыть"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => handleDelete(row.id)}
+                      >
+                        Удалить
+                      </button>
+                    </div>
+                  </div>
+                  {openId === row.id && (
+                    <div
+                      className="result"
+                      style={{ marginTop: 10 }}
+                      dangerouslySetInnerHTML={{ __html: renderMarkdown(row.analysis) }}
+                    />
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          {totalPages > 1 && (
+            <div className="pager">
+              <button
+                type="button"
+                className="btn-mini"
+                disabled={page === 0}
+                onClick={() => setPage((p) => Math.max(0, p - 1))}
               >
-                <img
-                  src={`https://img.youtube.com/vi/${row.video_id}/mqdefault.jpg`}
-                  alt="Превью видео"
-                  loading="lazy"
-                />
-              </a>
-              <div className="history-info">
-                <b>{MODE_TITLES[row.mode] ?? row.mode}</b>
-                {row.question && <span className="history-q"> — «{row.question}»</span>}
-                <div className="meta-line">
-                  {row.lang ? `${row.lang} · ` : ""}
-                  {formatDate(row.created_at)}
-                </div>
-              </div>
-              <div className="toolbar">
-                <button
-                  type="button"
-                  className="btn-mini"
-                  onClick={() => setOpenId(openId === row.id ? null : row.id)}
-                >
-                  {openId === row.id ? "Свернуть" : "Открыть"}
-                </button>
-                <button
-                  type="button"
-                  className="btn-mini"
-                  onClick={() => handleDelete(row.id)}
-                >
-                  Удалить
-                </button>
-              </div>
+                ← Назад
+              </button>
+              <span className="pager-info">
+                Стр. {page + 1} из {totalPages} · всего {total}
+              </span>
+              <button
+                type="button"
+                className="btn-mini"
+                disabled={page >= totalPages - 1}
+                onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+              >
+                Вперёд →
+              </button>
             </div>
-            {openId === row.id && (
-              <div
-                className="result"
-                style={{ marginTop: 10 }}
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(row.analysis) }}
-              />
-            )}
-          </li>
-        ))}
-      </ul>
+          )}
+        </>
+      )}
     </div>
   );
 }
