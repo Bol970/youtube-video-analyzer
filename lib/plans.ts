@@ -12,17 +12,43 @@ export const PLAN_LIMITS: Record<Plan, number> = {
   pro200: 7000,
 };
 
-/** Платные тарифы для формы подписки. */
-export const PAID_PLANS: {
-  id: Exclude<Plan, "free">;
+/** Человекочитаемые названия и цены тарифов. */
+export const PLAN_TITLES: Record<Plan, string> = {
+  free: "Бесплатный",
+  pro20: "Старт",
+  pro100: "Про",
+  pro200: "Макс",
+};
+export const PLAN_PRICES: Record<Plan, number> = {
+  free: 0,
+  pro20: 20,
+  pro100: 100,
+  pro200: 200,
+};
+
+export interface PlanInfo {
+  id: Plan;
   title: string;
   price: number; // $/мес
   limit: number; // разборов/мес
-}[] = [
-  { id: "pro20", title: "Старт", price: 20, limit: PLAN_LIMITS.pro20 },
-  { id: "pro100", title: "Про", price: 100, limit: PLAN_LIMITS.pro100 },
-  { id: "pro200", title: "Макс", price: 200, limit: PLAN_LIMITS.pro200 },
+}
+
+/** Платные тарифы (без free). */
+export const PAID_PLANS: PlanInfo[] = [
+  { id: "pro20", title: PLAN_TITLES.pro20, price: 20, limit: PLAN_LIMITS.pro20 },
+  { id: "pro100", title: PLAN_TITLES.pro100, price: 100, limit: PLAN_LIMITS.pro100 },
+  { id: "pro200", title: PLAN_TITLES.pro200, price: 200, limit: PLAN_LIMITS.pro200 },
 ];
+
+/** Все тарифы для формы выбора, включая бесплатный (для перехода обратно). */
+export const ALL_PLANS: PlanInfo[] = [
+  { id: "free", title: PLAN_TITLES.free, price: 0, limit: PLAN_LIMITS.free },
+  ...PAID_PLANS,
+];
+
+export function planTitle(plan: string | null | undefined): string {
+  return isPlan(plan) ? PLAN_TITLES[plan] : PLAN_TITLES.free;
+}
 
 export function isPlan(value: unknown): value is Plan {
   return value === "free" || value === "pro20" || value === "pro100" || value === "pro200";

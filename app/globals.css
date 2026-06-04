@@ -491,8 +491,12 @@ textarea {
 .auth-email {
   color: var(--ink);
   font-style: italic;
-  margin-left: auto;
 }
+.auth-plan {
+  font-family: Arial, Helvetica, sans-serif;
+  color: var(--navy);
+}
+.auth-plan b { color: var(--teal); }
 .auth-label {
   margin-right: auto;
   font-weight: bold;

@@ -3,7 +3,7 @@
 // Форма выбора тарифа (демо: реальная оплата не подключена — выбор просто
 // включает план в profiles, лимит разборов в месяц обновляется сразу).
 import { useState } from "react";
-import { PAID_PLANS, type Plan } from "@/lib/plans";
+import { ALL_PLANS, type Plan } from "@/lib/plans";
 import { getSupabaseClient } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 
@@ -35,14 +35,21 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
       {reason && <p className="note" style={{ marginBottom: 14 }}>{reason}</p>}
 
       <div className="plans">
-        {PAID_PLANS.map((p) => {
+        {ALL_PLANS.map((p) => {
           const current = usage?.plan === p.id;
+          const isFree = p.id === "free";
           return (
             <div key={p.id} className={`plan bevel-in ${current ? "plan-current" : ""}`}>
               <div className="plan-title">{p.title}</div>
               <div className="plan-price">
-                ${p.price}
-                <span>/мес</span>
+                {isFree ? (
+                  "Бесплатно"
+                ) : (
+                  <>
+                    ${p.price}
+                    <span>/мес</span>
+                  </>
+                )}
               </div>
               <div className="plan-limit">
                 {p.limit.toLocaleString("ru-RU")} разборов в месяц
@@ -53,7 +60,13 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
                 disabled={busy !== null || current}
                 onClick={() => choose(p.id)}
               >
-                {current ? "Текущий тариф" : busy === p.id ? "Включаю…" : "Выбрать"}
+                {current
+                  ? "Текущий тариф"
+                  : busy === p.id
+                    ? "Включаю…"
+                    : isFree
+                      ? "Перейти на free"
+                      : "Выбрать"}
               </button>
             </div>
           );
