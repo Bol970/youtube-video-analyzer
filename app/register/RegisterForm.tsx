@@ -2,20 +2,22 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const MIN_PASSWORD_LENGTH = 8;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function RegisterForm() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [done, setDone] = useState(false);
-  // true → нужно подтвердить email письмом; false → аккаунт активен сразу.
-  const [needsConfirm, setNeedsConfirm] = useState(false);
+  // Показывается только когда нужно подтверждение email письмом.
+  // При autoconfirm пользователя сразу перекидываем на анализатор.
+  const [sentConfirm, setSentConfirm] = useState(false);
 
   const configured = isSupabaseConfigured();
 
@@ -50,10 +52,14 @@ export default function RegisterForm() {
       });
       if (signUpError) {
         setError(signUpError.message || "Не удалось зарегистрироваться. Попробуйте ещё раз.");
+      } else if (data.session) {
+        // Аккаунт сразу активен (autoconfirm) — отправляем прямо к анализатору.
+        router.push("/");
+        router.refresh();
+        return; // не снимаем loading: идёт переход
       } else {
-        // Если сессии нет — проект требует подтверждения email письмом.
-        setNeedsConfirm(!data.session);
-        setDone(true);
+        // Сессии нет — проект требует подтверждения email письмом.
+        setSentConfirm(true);
       }
     } catch {
       setError("Не удалось связаться с сервером регистрации. Проверьте соединение.");
@@ -62,22 +68,15 @@ export default function RegisterForm() {
     }
   }
 
-  if (done) {
+  if (sentConfirm) {
     return (
       <div className="card bevel-out">
-        <span className="ribbon blue">Готово</span>
-        {needsConfirm ? (
-          <p>
-            ✓ Аккаунт создан. Мы отправили письмо для подтверждения на{" "}
-            <b>{email.trim()}</b> — перейдите по ссылке из письма, затем{" "}
-            <Link href="/login">войдите</Link>.
-          </p>
-        ) : (
-          <p>
-            ✓ Аккаунт <b>{email.trim()}</b> создан и сразу активен — вы вошли в систему.{" "}
-            <Link href="/">Перейти к анализатору →</Link>
-          </p>
-        )}
+        <span className="ribbon blue">Почти готово</span>
+        <p>
+          ✓ Аккаунт создан. Мы отправили письмо для подтверждения на{" "}
+          <b>{email.trim()}</b> — перейдите по ссылке из письма, затем{" "}
+          <Link href="/login">войдите</Link>.
+        </p>
       </div>
     );
   }
