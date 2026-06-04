@@ -275,7 +275,7 @@ export default function HistoryList() {
                         className="btn-mini"
                         onClick={() => setOpenId(openId === row.id ? null : row.id)}
                       >
-                        {openId === row.id ? "Свернуть" : "Открыть"}
+                        {openId === row.id ? "Свернуть" : "Развернуть"}
                       </button>
                       <button
                         type="button"
