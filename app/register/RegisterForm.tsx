@@ -13,6 +13,8 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  // true → нужно подтвердить email письмом; false → аккаунт активен сразу.
+  const [needsConfirm, setNeedsConfirm] = useState(false);
 
   const configured = isSupabaseConfigured();
 
@@ -41,13 +43,15 @@ export default function RegisterForm() {
 
     setLoading(true);
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data, error: signUpError } = await supabase.auth.signUp({
         email: email.trim(),
         password,
       });
       if (signUpError) {
         setError(signUpError.message || "Не удалось зарегистрироваться. Попробуйте ещё раз.");
       } else {
+        // Если сессии нет — проект требует подтверждения email письмом.
+        setNeedsConfirm(!data.session);
         setDone(true);
       }
     } catch {
@@ -61,10 +65,16 @@ export default function RegisterForm() {
     return (
       <div className="card bevel-out">
         <span className="ribbon blue">Готово</span>
-        <p>
-          ✓ Аккаунт создан. Мы отправили письмо для подтверждения на{" "}
-          <b>{email.trim()}</b> — перейдите по ссылке из письма, чтобы активировать вход.
-        </p>
+        {needsConfirm ? (
+          <p>
+            ✓ Аккаунт создан. Мы отправили письмо для подтверждения на{" "}
+            <b>{email.trim()}</b> — перейдите по ссылке из письма, чтобы активировать вход.
+          </p>
+        ) : (
+          <p>
+            ✓ Аккаунт <b>{email.trim()}</b> создан и сразу активен — вы вошли в систему.
+          </p>
+        )}
       </div>
     );
   }
