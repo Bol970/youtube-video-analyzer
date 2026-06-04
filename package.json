@@ -2,7 +2,7 @@
   "name": "youtube-video-analyzer",
   "version": "1.0.0",
   "private": true,
-  "description": "Анализатор YouTube-видео: транскрипт через Supadata + анализ через OpenRouter LLM",
+  "description": "Разбор YouTube-видео: транскрипт через Supadata + разбор через OpenRouter LLM",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

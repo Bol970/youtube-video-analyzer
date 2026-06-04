@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (!isAnalysisMode(mode)) {
-    return NextResponse.json({ error: "Неизвестный режим анализа." }, { status: 400 });
+    return NextResponse.json({ error: "Неизвестный режим разбора." }, { status: 400 });
   }
 
   if (mode === "qa" && (!question || !question.trim())) {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       truncated = true;
     }
 
-    // 2. Анализ через OpenRouter LLM
+    // 2. Разбор через OpenRouter LLM
     const messages = buildMessages(mode, plain, timed, question);
     const analysis = await chatCompletion(messages);
 

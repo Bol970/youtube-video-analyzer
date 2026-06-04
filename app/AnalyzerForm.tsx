@@ -161,12 +161,12 @@ export default function AnalyzerForm() {
     <>
       <ol className="steps">
         <li><b>1.</b> Вставь ссылку на видео</li>
-        <li><b>2.</b> Выбери тип анализа</li>
-        <li><b>3.</b> Жми «Анализировать»</li>
+        <li><b>2.</b> Выбери тип разбора</li>
+        <li><b>3.</b> Жми «Разобрать»</li>
       </ol>
 
       <div className="card bevel-out">
-        <span className="ribbon red">Новый анализ</span>
+        <span className="ribbon red">Новый разбор</span>
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="grow">
@@ -191,7 +191,7 @@ export default function AnalyzerForm() {
           </div>
 
           <div style={{ marginTop: 16 }}>
-            <span className="field-label">Тип анализа</span>
+            <span className="field-label">Тип разбора</span>
             <ul className="modes">
               {MODES.map((m) => (
                 <li key={m.id}>
@@ -226,7 +226,7 @@ export default function AnalyzerForm() {
 
           <div style={{ marginTop: 18 }}>
             <button className="btn" type="submit" disabled={loading}>
-              {loading ? "Анализирую…" : "Анализировать ▶"}
+              {loading ? "Разбираю…" : "Разобрать ▶"}
             </button>
           </div>
         </form>
@@ -261,7 +261,7 @@ export default function AnalyzerForm() {
             result.requestedLang !== result.lang && (
               <div className="note" style={{ marginBottom: 10 }}>
                 ⓘ Транскрипта на языке «{langLabel(result.requestedLang)}» у этого
-                видео нет — показан доступный («{langLabel(result.lang)}»). Анализ
+                видео нет — показан доступный («{langLabel(result.lang)}»). Разбор
                 всё равно сделан на русском.
               </div>
             )}

@@ -6,7 +6,7 @@ export default function Home() {
       <header className="masthead">
         <div className="burst">NEW!</div>
         <h1>YouTube Video Analyzer</h1>
-        <span className="tag">Транскрипт → ИИ-анализ за один клик</span>
+        <span className="tag">Транскрипт → ИИ-разбор за один клик</span>
       </header>
 
       <main className="inner">
@@ -17,7 +17,7 @@ export default function Home() {
           <a href="https://supadata.ai" target="_blank" rel="noreferrer">
             Supadata
           </a>{" "}
-          · Анализ —{" "}
+          · Разбор —{" "}
           <a href="https://openrouter.ai" target="_blank" rel="noreferrer">
             OpenRouter LLM
           </a>

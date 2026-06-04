@@ -37,7 +37,7 @@ export default function LoginForm() {
             : signInError.message || "Не удалось войти. Попробуйте ещё раз."
         );
       } else {
-        // Сессия установлена — возвращаемся к анализатору.
+        // Сессия установлена — возвращаемся к разбору.
         router.push("/");
         router.refresh();
       }

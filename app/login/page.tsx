@@ -17,7 +17,7 @@ export default function LoginPage() {
         <LoginForm />
 
         <div className="footer">
-          <Link href="/">← Вернуться к анализатору</Link>
+          <Link href="/">← Вернуться к разбору</Link>
         </div>
       </main>
     </div>

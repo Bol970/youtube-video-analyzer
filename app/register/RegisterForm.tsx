@@ -16,7 +16,7 @@ export default function RegisterForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Показывается только когда нужно подтверждение email письмом.
-  // При autoconfirm пользователя сразу перекидываем на анализатор.
+  // При autoconfirm пользователя сразу перекидываем к разбору.
   const [sentConfirm, setSentConfirm] = useState(false);
 
   const configured = isSupabaseConfigured();
@@ -53,7 +53,7 @@ export default function RegisterForm() {
       if (signUpError) {
         setError(signUpError.message || "Не удалось зарегистрироваться. Попробуйте ещё раз.");
       } else if (data.session) {
-        // Аккаунт сразу активен (autoconfirm) — отправляем прямо к анализатору.
+        // Аккаунт сразу активен (autoconfirm) — отправляем прямо к разбору.
         router.push("/");
         router.refresh();
         return; // не снимаем loading: идёт переход

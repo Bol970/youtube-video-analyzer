@@ -17,7 +17,7 @@ export default function HistoryPage() {
         <HistoryList />
 
         <div className="footer">
-          <Link href="/">← Вернуться к анализатору</Link>
+          <Link href="/">← Вернуться к разбору</Link>
         </div>
       </main>
     </div>
