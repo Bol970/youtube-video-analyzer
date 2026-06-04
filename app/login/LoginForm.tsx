@@ -50,7 +50,6 @@ export default function LoginForm() {
 
   return (
     <div className="card bevel-out">
-      <span className="ribbon red">Вход</span>
 
       {!configured && (
         <div className="note" style={{ marginBottom: 12 }}>

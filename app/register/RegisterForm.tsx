@@ -83,7 +83,6 @@ export default function RegisterForm() {
 
   return (
     <div className="card bevel-out">
-      <span className="ribbon red">Регистрация</span>
 
       {!configured && (
         <div className="note" style={{ marginBottom: 12 }}>
