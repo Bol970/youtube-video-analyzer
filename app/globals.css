@@ -493,6 +493,11 @@ textarea {
   font-style: italic;
   margin-left: auto;
 }
+.auth-label {
+  margin-right: auto;
+  font-weight: bold;
+  color: var(--panel-darker);
+}
 
 /* ===== Список «Мои анализы» ===== */
 .history-list {

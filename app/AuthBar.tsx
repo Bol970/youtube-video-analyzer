@@ -1,14 +1,14 @@
 "use client";
 
-// Полоса аутентификации в шапке: показывает email и кнопку выхода для
-// залогиненного пользователя, либо ссылки «Войти / Регистрация» для гостя.
+// Полоса аутентификации в шапке (видна на всех страницах).
+// Для гостя — ссылки «Войти / Регистрация», для залогиненного — email и выход.
+// Рендерится всегда (в т.ч. при SSR и пока грузится сессия), чтобы вход в
+// регистрацию был доступен независимо от состояния клиента.
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 
 export default function AuthBar() {
-  const { user, loading, configured, signOut } = useAuth();
-
-  if (!configured || loading) return null;
+  const { user, signOut } = useAuth();
 
   return (
     <nav className="auth-bar">
@@ -22,6 +22,7 @@ export default function AuthBar() {
         </>
       ) : (
         <>
+          <span className="auth-label">Аккаунт:</span>
           <Link href="/login">Войти</Link>
           <Link href="/register">Регистрация</Link>
         </>
