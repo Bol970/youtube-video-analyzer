@@ -43,7 +43,7 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
               <div className="plan-title">{p.title}</div>
               <div className="plan-price">
                 {isFree ? (
-                  "Бесплатно"
+                  <span className="plan-free-word">Бесплатно</span>
                 ) : (
                   <>
                     ${p.price}

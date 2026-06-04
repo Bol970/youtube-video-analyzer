@@ -605,6 +605,9 @@ a.btn-mini {
   font-weight: normal;
   color: var(--panel-darker);
 }
+.plan-free-word {
+  font-size: 22px;
+}
 .plan-limit {
   font-family: Arial, Helvetica, sans-serif;
   font-size: 14px;
