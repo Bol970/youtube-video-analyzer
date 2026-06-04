@@ -538,3 +538,64 @@ textarea {
   font-style: italic;
   color: var(--panel-darker);
 }
+
+/* ===== Подписки / счётчик квоты ===== */
+.auth-quota {
+  margin-right: auto;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: bold;
+  color: var(--navy);
+}
+.auth-quota b { color: var(--red); }
+
+/* .btn / .btn-mini могут использоваться и на ссылках <a> */
+a.btn,
+a.btn-mini {
+  display: inline-block;
+  text-decoration: none;
+}
+
+.plans-head {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin: 0 0 10px;
+  font-size: 20px;
+}
+.plans {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.plan {
+  flex: 1 1 180px;
+  background: #fff;
+  padding: 16px;
+  text-align: center;
+}
+.plan-current {
+  outline: 3px solid var(--teal);
+}
+.plan-title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--navy);
+}
+.plan-price {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  font-size: 34px;
+  margin: 8px 0 4px;
+}
+.plan-price span {
+  font-size: 15px;
+  font-weight: normal;
+  color: var(--panel-darker);
+}
+.plan-limit {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  margin-bottom: 14px;
+}

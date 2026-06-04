@@ -4,26 +4,53 @@ import type { NextRequest } from "next/server";
 // Мокаем внешние клиенты — сеть в тестах не трогаем.
 vi.mock("@/lib/supadata", async () => {
   const actual = await vi.importActual<typeof import("@/lib/supadata")>("@/lib/supadata");
-  return {
-    ...actual,
-    fetchTranscript: vi.fn(),
-  };
+  return { ...actual, fetchTranscript: vi.fn() };
 });
 vi.mock("@/lib/openrouter", async () => {
   const actual = await vi.importActual<typeof import("@/lib/openrouter")>("@/lib/openrouter");
-  return {
-    ...actual,
-    chatCompletion: vi.fn(),
-  };
+  return { ...actual, chatCompletion: vi.fn() };
 });
+
+// Мутабельное состояние мок-Supabase (через vi.hoisted, т.к. vi.mock поднимается вверх).
+const sb = vi.hoisted(() => ({
+  user: { id: "u1" } as { id: string } | null,
+  userErr: null as unknown,
+  plan: "free",
+  count: 0,
+  inserted: [] as unknown[],
+}));
+
+vi.mock("@/lib/supabaseServer", () => ({
+  getServerClientForToken: () => ({
+    auth: { getUser: async () => ({ data: { user: sb.user }, error: sb.userErr }) },
+    from: (table: string) =>
+      table === "profiles"
+        ? {
+            select: () => ({
+              eq: () => ({ single: async () => ({ data: { plan: sb.plan } }) }),
+            }),
+          }
+        : {
+            select: () => ({ gte: async () => ({ count: sb.count, error: null }) }),
+            insert: async (row: unknown) => {
+              sb.inserted.push(row);
+              return { error: null };
+            },
+          },
+  }),
+}));
 
 import { POST } from "@/app/api/analyze/route";
 import { fetchTranscript, SupadataError } from "@/lib/supadata";
 import { chatCompletion } from "@/lib/openrouter";
 
-// Строим минимальный NextRequest с нужным методом json().
-function makeReq(body: unknown, broken = false): NextRequest {
+function makeReq(
+  body: unknown,
+  opts: { broken?: boolean; auth?: string | null } = {}
+): NextRequest {
+  const { broken = false, auth = "valid-token" } = opts;
   return {
+    headers: { get: (k: string) => (k.toLowerCase() === "authorization" && auth ? `Bearer ${auth}` : null) },
     json: async () => {
       if (broken) throw new Error("bad json");
       return body;
@@ -33,74 +60,84 @@ function makeReq(body: unknown, broken = false): NextRequest {
 
 const VALID_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
-describe("POST /api/analyze — валидация", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
+beforeEach(() => {
+  vi.clearAllMocks();
+  sb.user = { id: "u1" };
+  sb.userErr = null;
+  sb.plan = "free";
+  sb.count = 0;
+  sb.inserted = [];
+});
+
+describe("POST /api/analyze — аутентификация и квота", () => {
+  it("401 без заголовка Authorization", async () => {
+    const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }, { auth: null }));
+    expect(res.status).toBe(401);
+    expect((await res.json()).code).toBe("auth_required");
   });
 
+  it("401, если токен невалиден (getUser без пользователя)", async () => {
+    sb.user = null;
+    const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
+    expect(res.status).toBe(401);
+  });
+
+  it("402, когда лимит месяца исчерпан", async () => {
+    sb.count = 10; // free-лимит = 10
+    const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
+    expect(res.status).toBe(402);
+    expect((await res.json()).code).toBe("quota_exceeded");
+  });
+});
+
+describe("POST /api/analyze — валидация (с авторизацией)", () => {
   it("400 на битый JSON", async () => {
-    const res = await POST(makeReq(null, true));
-    expect(res.status).toBe(400);
+    expect((await POST(makeReq(null, { broken: true }))).status).toBe(400);
   });
-
   it("400, если не указан url", async () => {
-    const res = await POST(makeReq({ mode: "summary" }));
-    expect(res.status).toBe(400);
+    expect((await POST(makeReq({ mode: "summary" }))).status).toBe(400);
   });
-
   it("400 при неизвестном режиме", async () => {
-    const res = await POST(makeReq({ url: VALID_URL, mode: "nonsense" }));
-    expect(res.status).toBe(400);
+    expect((await POST(makeReq({ url: VALID_URL, mode: "nonsense" }))).status).toBe(400);
   });
-
   it("400, если в режиме qa нет вопроса", async () => {
-    const res = await POST(makeReq({ url: VALID_URL, mode: "qa", question: "  " }));
-    expect(res.status).toBe(400);
+    expect((await POST(makeReq({ url: VALID_URL, mode: "qa", question: "  " }))).status).toBe(400);
   });
-
   it("400 при ссылке не на YouTube", async () => {
-    const res = await POST(makeReq({ url: "https://vimeo.com/123", mode: "summary" }));
-    expect(res.status).toBe(400);
+    expect((await POST(makeReq({ url: "https://vimeo.com/123", mode: "summary" }))).status).toBe(400);
   });
 });
 
 describe("POST /api/analyze — основной поток", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  it("возвращает анализ при корректном запросе", async () => {
+  it("возвращает разбор и сохраняет его, отдаёт usage", async () => {
     vi.mocked(fetchTranscript).mockResolvedValue({
       plainText: "текст",
       timedText: "[0:00] текст",
       lang: "ru",
       availableLangs: ["ru"],
     });
-    vi.mocked(chatCompletion).mockResolvedValue("готовый анализ");
+    vi.mocked(chatCompletion).mockResolvedValue("готовый разбор");
 
     const res = await POST(makeReq({ url: VALID_URL, mode: "summary", lang: "ru" }));
     expect(res.status).toBe(200);
     const data = await res.json();
     expect(data).toMatchObject({
       videoId: "dQw4w9WgXcQ",
-      mode: "summary",
-      lang: "ru",
-      analysis: "готовый анализ",
-      truncated: false,
+      analysis: "готовый разбор",
+      usage: { used: 1, limit: 10, plan: "free" },
     });
+    expect(sb.inserted).toHaveLength(1); // разбор сохранён на сервере
   });
 
   it("пробрасывает статус ошибки от Supadata", async () => {
     vi.mocked(fetchTranscript).mockRejectedValue(new SupadataError("нет субтитров", 404));
     const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
     expect(res.status).toBe(404);
-    const data = await res.json();
-    expect(data.error).toBe("нет субтитров");
+    expect((await res.json()).error).toBe("нет субтитров");
   });
 
   it("отдаёт 500 на неожиданной ошибке", async () => {
     vi.mocked(fetchTranscript).mockRejectedValue(new Error("boom"));
-    const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
-    expect(res.status).toBe(500);
+    expect((await POST(makeReq({ url: VALID_URL, mode: "summary" }))).status).toBe(500);
   });
 });

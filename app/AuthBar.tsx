@@ -1,19 +1,23 @@
 "use client";
 
 // Полоса аутентификации в шапке (видна на всех страницах).
-// Для гостя — ссылки «Войти / Регистрация», для залогиненного — email и выход.
-// Рендерится всегда (в т.ч. при SSR и пока грузится сессия), чтобы вход в
-// регистрацию был доступен независимо от состояния клиента.
+// Для гостя — ссылки «Войти / Регистрация», для залогиненного — остаток
+// разборов за месяц, email и выход.
 import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 
 export default function AuthBar() {
-  const { user, signOut } = useAuth();
+  const { user, usage, signOut } = useAuth();
 
   return (
     <nav className="auth-bar">
       {user ? (
         <>
+          {usage && (
+            <span className="auth-quota">
+              Разборов: <b>{Math.max(0, usage.limit - usage.used)}</b> из {usage.limit}
+            </span>
+          )}
           <Link href="/history">Мои разборы</Link>
           <span className="auth-email">{user.email}</span>
           <button type="button" className="btn-mini" onClick={() => signOut()}>

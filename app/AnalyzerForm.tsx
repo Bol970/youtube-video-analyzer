@@ -4,8 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { MODES, type AnalysisMode } from "@/lib/prompts";
 import { renderMarkdown } from "@/lib/markdown";
-import { getSupabaseClient } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
+import SubscriptionPlans from "./SubscriptionPlans";
 import LangSelect from "./LangSelect";
 import Loader from "./Loader";
 
@@ -16,6 +16,7 @@ interface AnalyzeResponse {
   availableLangs: string[];
   truncated: boolean;
   analysis: string;
+  usage?: { used: number; limit: number; plan: string };
   requestedLang?: string; // что выбрал пользователь (добавляем на клиенте)
 }
 
@@ -54,11 +55,8 @@ function langLabel(code: string): string {
   return LANG_NAMES[code] || code || "—";
 }
 
-// Статус сохранения результата в историю (таблица analyses).
-type SaveStatus = "idle" | "saving" | "saved" | "error";
-
 export default function AnalyzerForm() {
-  const { user, configured } = useAuth();
+  const { user, session, usage, refreshUsage } = useAuth();
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<AnalysisMode>("summary");
   const [lang, setLang] = useState("ru"); // язык транскрипта, по умолчанию русский
@@ -67,32 +65,24 @@ export default function AnalyzerForm() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [copied, setCopied] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
+  // Гейты: предложить вход или показать тарифы.
+  const [needAuth, setNeedAuth] = useState(false);
+  const [needPlan, setNeedPlan] = useState(false);
 
   const needsQuestion = MODES.find((m) => m.id === mode)?.needsQuestion;
-
-  // Сохраняем выполненный анализ в БД, если пользователь залогинен.
-  // RLS требует user_id = auth.uid(), поэтому пишем id текущей сессии.
-  async function saveToHistory(data: AnalyzeResponse, askedQuestion: string) {
-    const supabase = getSupabaseClient();
-    if (!supabase || !user) return;
-    setSaveStatus("saving");
-    const { error: insertError } = await supabase.from("analyses").insert({
-      user_id: user.id,
-      video_id: data.videoId,
-      mode: data.mode,
-      question: data.mode === "qa" ? askedQuestion : null,
-      lang: data.lang || null,
-      analysis: data.analysis,
-    });
-    setSaveStatus(insertError ? "error" : "saved");
-  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setResult(null);
+    setNeedAuth(false);
+    setNeedPlan(false);
 
+    // Разбор доступен только вошедшим — иначе предлагаем войти/зарегистрироваться.
+    if (!user || !session) {
+      setNeedAuth(true);
+      return;
+    }
     if (!url.trim()) {
       setError("Вставьте ссылку на YouTube-видео.");
       return;
@@ -101,22 +91,34 @@ export default function AnalyzerForm() {
       setError("Введите вопрос по видео.");
       return;
     }
+    // Лимит исчерпан — сразу показываем тарифы, не дёргая сервер.
+    if (usage && usage.used >= usage.limit) {
+      setNeedPlan(true);
+      return;
+    }
 
     setLoading(true);
-    setSaveStatus("idle");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
         body: JSON.stringify({ url, mode, question, lang }),
       });
       const data = await res.json();
-      if (!res.ok) {
+      if (res.status === 401 || data?.code === "auth_required") {
+        setNeedAuth(true);
+      } else if (res.status === 402 || data?.code === "quota_exceeded") {
+        await refreshUsage();
+        setNeedPlan(true);
+      } else if (!res.ok) {
         setError(data?.error || "Что-то пошло не так. Попробуйте ещё раз.");
       } else {
         const payload = data as AnalyzeResponse;
         setResult({ ...payload, requestedLang: lang });
-        void saveToHistory(payload, question);
+        void refreshUsage(); // обновить счётчик в шапке
       }
     } catch {
       setError("Не удалось отправить запрос. Проверьте соединение.");
@@ -231,6 +233,25 @@ export default function AnalyzerForm() {
         </form>
       </div>
 
+      {needAuth && (
+        <div className="card bevel-out">
+          <p>
+            🔒 Чтобы делать разборы, нужно войти в аккаунт.
+          </p>
+          <div className="toolbar">
+            <Link className="btn" href="/login">Войти ▶</Link>
+            <Link className="btn-mini" href="/register">Регистрация</Link>
+          </div>
+          <p className="note" style={{ marginTop: 10 }}>
+            Каждому пользователю бесплатно доступно {usage?.limit ?? 10} разборов в месяц.
+          </p>
+        </div>
+      )}
+
+      {needPlan && (
+        <SubscriptionPlans reason="Бесплатный лимит разборов на этот месяц исчерпан. Выберите тариф, чтобы продолжить." />
+      )}
+
       {loading && <Loader />}
 
       {error && !loading && <div className="error-box">⚠ {error}</div>}
@@ -265,25 +286,9 @@ export default function AnalyzerForm() {
               </div>
             )}
 
-          {configured && (
-            <div className="note" style={{ marginBottom: 10 }}>
-              {user ? (
-                saveStatus === "saving" ? (
-                  "💾 Сохраняю…"
-                ) : saveStatus === "saved" ? (
-                  <>
-                    ✓ Сохранено в <Link href="/history">«Мои разборы»</Link>
-                  </>
-                ) : saveStatus === "error" ? (
-                  "⚠ Не удалось сохранить разбор."
-                ) : null
-              ) : (
-                <>
-                  ⓘ <Link href="/login">Войдите</Link>, чтобы сохранять свои разборы.
-                </>
-              )}
-            </div>
-          )}
+          <div className="note" style={{ marginBottom: 10 }}>
+            ✓ Сохранено в <Link href="/history">«Мои разборы»</Link>
+          </div>
 
           <div className="toolbar">
             <button type="button" className="btn-mini" onClick={handleCopy}>

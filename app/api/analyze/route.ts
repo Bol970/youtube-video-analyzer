@@ -3,6 +3,8 @@ import { extractVideoId } from "@/lib/youtube";
 import { fetchTranscript, SupadataError } from "@/lib/supadata";
 import { chatCompletion, OpenRouterError } from "@/lib/openrouter";
 import { buildMessages, isAnalysisMode } from "@/lib/prompts";
+import { getServerClientForToken } from "@/lib/supabaseServer";
+import { planLimit, monthStartISO } from "@/lib/plans";
 
 // Транскрипты длинных видео обрезаем, чтобы не упереться в лимиты модели.
 const MAX_TRANSCRIPT_CHARS = 120_000;
@@ -11,6 +13,33 @@ export const runtime = "nodejs";
 export const maxDuration = 60; // секунд (для Vercel)
 
 export async function POST(req: NextRequest) {
+  // 0. Аутентификация: разбор доступен только вошедшим пользователям.
+  const authHeader = req.headers.get("authorization") || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  if (!token) {
+    return NextResponse.json(
+      { error: "Войдите, чтобы делать разборы.", code: "auth_required" },
+      { status: 401 }
+    );
+  }
+
+  const supabase = getServerClientForToken(token);
+  if (!supabase) {
+    return NextResponse.json(
+      { error: "Аутентификация не настроена на сервере." },
+      { status: 500 }
+    );
+  }
+
+  const { data: userData, error: userErr } = await supabase.auth.getUser();
+  const user = userData?.user;
+  if (userErr || !user) {
+    return NextResponse.json(
+      { error: "Сессия истекла. Войдите снова.", code: "auth_required" },
+      { status: 401 }
+    );
+  }
+
   let body: unknown;
   try {
     body = await req.json();
@@ -48,8 +77,36 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // 1. Проверка квоты: число разборов за текущий месяц против лимита плана.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("plan")
+    .eq("id", user.id)
+    .single();
+  const plan = profile?.plan ?? "free";
+  const limit = planLimit(plan);
+
+  const { count, error: countErr } = await supabase
+    .from("analyses")
+    .select("id", { count: "exact", head: true })
+    .gte("created_at", monthStartISO());
+  const used = countErr ? 0 : count ?? 0;
+
+  if (used >= limit) {
+    return NextResponse.json(
+      {
+        error: "Лимит разборов на этот месяц исчерпан.",
+        code: "quota_exceeded",
+        plan,
+        used,
+        limit,
+      },
+      { status: 402 }
+    );
+  }
+
   try {
-    // 1. Транскрипт через Supadata
+    // 2. Транскрипт через Supadata
     const transcript = await fetchTranscript(videoId, lang || undefined);
 
     let plain = transcript.plainText;
@@ -61,9 +118,20 @@ export async function POST(req: NextRequest) {
       truncated = true;
     }
 
-    // 2. Разбор через OpenRouter LLM
+    // 3. Разбор через OpenRouter LLM
     const messages = buildMessages(mode, plain, timed, question);
     const analysis = await chatCompletion(messages);
+
+    // 4. Сохраняем разбор от имени пользователя (RLS: user_id = auth.uid()).
+    //    Это же и есть единица учёта квоты.
+    await supabase.from("analyses").insert({
+      user_id: user.id,
+      video_id: videoId,
+      mode,
+      question: mode === "qa" ? question : null,
+      lang: transcript.lang || null,
+      analysis,
+    });
 
     return NextResponse.json({
       videoId,
@@ -72,6 +140,7 @@ export async function POST(req: NextRequest) {
       availableLangs: transcript.availableLangs,
       truncated,
       analysis,
+      usage: { used: used + 1, limit, plan },
     });
   } catch (err) {
     if (err instanceof SupadataError || err instanceof OpenRouterError) {
