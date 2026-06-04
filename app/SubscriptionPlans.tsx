@@ -60,13 +60,7 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
                 disabled={busy !== null || current}
                 onClick={() => choose(p.id)}
               >
-                {current
-                  ? "Текущий тариф"
-                  : busy === p.id
-                    ? "Включаю…"
-                    : isFree
-                      ? "Перейти на free"
-                      : "Выбрать"}
+                {current ? "Текущий тариф" : busy === p.id ? "Включаю…" : "Выбрать"}
               </button>
             </div>
           );
