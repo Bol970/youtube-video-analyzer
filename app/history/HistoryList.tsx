@@ -47,6 +47,7 @@ export default function HistoryList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const [titles, setTitles] = useState<Record<string, string | null>>({});
   const fetchedTitles = useRef<Set<string>>(new Set());
 
@@ -94,15 +95,34 @@ export default function HistoryList() {
     });
   }, [rows]);
 
-  async function handleDelete(id: string) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-    const { error: deleteError } = await supabase.from("analyses").delete().eq("id", id);
-    if (!deleteError) {
-      // Если удалили последнюю строку на странице — шагнём назад.
-      if (rows.length === 1 && page > 0) setPage((p) => p - 1);
-      else load();
+  async function handleCopy(row: AnalysisRow) {
+    try {
+      await navigator.clipboard.writeText(row.analysis);
+    } catch {
+      // Фолбэк для старых браузеров / небезопасного контекста
+      const ta = document.createElement("textarea");
+      ta.value = row.analysis;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
     }
+    setCopiedId(row.id);
+    setTimeout(() => setCopiedId((c) => (c === row.id ? null : c)), 2000);
+  }
+
+  function handleDownload(row: AnalysisRow) {
+    const blob = new Blob([row.analysis], { type: "text/plain;charset=utf-8" });
+    const href = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = href;
+    a.download = `razbor-${row.video_id}-${row.mode}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(href);
   }
 
   function applyFilter(nextFrom: string, nextTo: string) {
@@ -224,9 +244,16 @@ export default function HistoryList() {
                       <button
                         type="button"
                         className="btn-mini"
-                        onClick={() => handleDelete(row.id)}
+                        onClick={() => handleCopy(row)}
                       >
-                        Удалить
+                        {copiedId === row.id ? "✓ Скопировано" : "📋 Скопировать"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-mini"
+                        onClick={() => handleDownload(row)}
+                      >
+                        ⬇ Скачать .txt
                       </button>
                     </div>
                   </div>
