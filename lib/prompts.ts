@@ -3,7 +3,7 @@
 export type AnalysisMode = "summary" | "keypoints" | "chapters" | "qa";
 
 export const MODES: { id: AnalysisMode; title: string; needsQuestion?: boolean }[] = [
-  { id: "summary", title: "Краткое summary" },
+  { id: "summary", title: "Краткое содержание" },
   { id: "keypoints", title: "Ключевые тезисы" },
   { id: "chapters", title: "Главы / таймкоды" },
   { id: "qa", title: "Вопрос-ответ по видео", needsQuestion: true },

@@ -6,7 +6,7 @@ import AuthBar from "./AuthBar";
 export const metadata: Metadata = {
   title: "YouTube Video Analyzer — разбор видео через ИИ",
   description:
-    "Вставь ссылку на YouTube-видео — получи краткое summary, ключевые тезисы, главы или ответ на свой вопрос. Транскрипт через Supadata, разбор через OpenRouter LLM.",
+    "Вставь ссылку на YouTube-видео — получи краткое содержание, ключевые тезисы, главы или ответ на свой вопрос. Транскрипт через Supadata, разбор через OpenRouter LLM.",
 };
 
 export default function RootLayout({

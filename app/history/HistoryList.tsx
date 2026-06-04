@@ -18,7 +18,7 @@ interface AnalysisRow {
 }
 
 const MODE_TITLES: Record<AnalysisMode, string> = {
-  summary: "Краткое summary",
+  summary: "Краткое содержание",
   keypoints: "Ключевые тезисы",
   chapters: "Главы / таймкоды",
   qa: "Вопрос-ответ",
