@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { MODES, type AnalysisMode } from "@/lib/prompts";
 import { renderMarkdown } from "@/lib/markdown";
+import { getSupabaseClient } from "@/lib/supabase";
+import { useAuth } from "./AuthProvider";
 import LangSelect from "./LangSelect";
 import Loader from "./Loader";
 
@@ -51,7 +54,11 @@ function langLabel(code: string): string {
   return LANG_NAMES[code] || code || "—";
 }
 
+// Статус сохранения результата в историю (таблица analyses).
+type SaveStatus = "idle" | "saving" | "saved" | "error";
+
 export default function AnalyzerForm() {
+  const { user, configured } = useAuth();
   const [url, setUrl] = useState("");
   const [mode, setMode] = useState<AnalysisMode>("summary");
   const [lang, setLang] = useState("ru"); // язык транскрипта, по умолчанию русский
@@ -60,8 +67,26 @@ export default function AnalyzerForm() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AnalyzeResponse | null>(null);
   const [copied, setCopied] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
   const needsQuestion = MODES.find((m) => m.id === mode)?.needsQuestion;
+
+  // Сохраняем выполненный анализ в БД, если пользователь залогинен.
+  // RLS требует user_id = auth.uid(), поэтому пишем id текущей сессии.
+  async function saveToHistory(data: AnalyzeResponse, askedQuestion: string) {
+    const supabase = getSupabaseClient();
+    if (!supabase || !user) return;
+    setSaveStatus("saving");
+    const { error: insertError } = await supabase.from("analyses").insert({
+      user_id: user.id,
+      video_id: data.videoId,
+      mode: data.mode,
+      question: data.mode === "qa" ? askedQuestion : null,
+      lang: data.lang || null,
+      analysis: data.analysis,
+    });
+    setSaveStatus(insertError ? "error" : "saved");
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -78,6 +103,7 @@ export default function AnalyzerForm() {
     }
 
     setLoading(true);
+    setSaveStatus("idle");
     try {
       const res = await fetch("/api/analyze", {
         method: "POST",
@@ -88,7 +114,9 @@ export default function AnalyzerForm() {
       if (!res.ok) {
         setError(data?.error || "Что-то пошло не так. Попробуйте ещё раз.");
       } else {
-        setResult({ ...(data as AnalyzeResponse), requestedLang: lang });
+        const payload = data as AnalyzeResponse;
+        setResult({ ...payload, requestedLang: lang });
+        void saveToHistory(payload, question);
       }
     } catch {
       setError("Не удалось отправить запрос. Проверьте соединение.");
@@ -237,6 +265,26 @@ export default function AnalyzerForm() {
                 всё равно сделан на русском.
               </div>
             )}
+
+          {configured && (
+            <div className="note" style={{ marginBottom: 10 }}>
+              {user ? (
+                saveStatus === "saving" ? (
+                  "💾 Сохраняю в историю…"
+                ) : saveStatus === "saved" ? (
+                  <>
+                    ✓ Сохранено в <Link href="/history">«Мои анализы»</Link>
+                  </>
+                ) : saveStatus === "error" ? (
+                  "⚠ Не удалось сохранить в историю."
+                ) : null
+              ) : (
+                <>
+                  ⓘ <Link href="/login">Войдите</Link>, чтобы сохранять анализы в историю.
+                </>
+              )}
+            </div>
+          )}
 
           <div className="toolbar">
             <button type="button" className="btn-mini" onClick={handleCopy}>

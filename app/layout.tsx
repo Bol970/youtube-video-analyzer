@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { AuthProvider } from "./AuthProvider";
+import AuthBar from "./AuthBar";
 
 export const metadata: Metadata = {
   title: "YouTube Video Analyzer — анализ видео через ИИ",
@@ -14,7 +16,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          <AuthBar />
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

@@ -468,3 +468,53 @@ textarea {
   border: 2px solid #000;
 }
 .steps b { color: var(--red); }
+
+/* ===== Полоса аутентификации в шапке ===== */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13px;
+  background: var(--panel);
+  border-bottom: 4px solid #000;
+  padding: 6px 14px;
+}
+.auth-bar a {
+  color: var(--link);
+  font-weight: bold;
+  text-decoration: none;
+}
+.auth-bar a:hover { text-decoration: underline; }
+.auth-email {
+  color: var(--ink);
+  font-style: italic;
+  margin-left: auto;
+}
+
+/* ===== Список «Мои анализы» ===== */
+.history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.history-item {
+  background: #fff;
+  padding: 12px;
+}
+.history-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.history-q {
+  font-style: italic;
+  color: var(--panel-darker);
+}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
 
 const MIN_PASSWORD_LENGTH = 8;
@@ -68,11 +69,13 @@ export default function RegisterForm() {
         {needsConfirm ? (
           <p>
             ✓ Аккаунт создан. Мы отправили письмо для подтверждения на{" "}
-            <b>{email.trim()}</b> — перейдите по ссылке из письма, чтобы активировать вход.
+            <b>{email.trim()}</b> — перейдите по ссылке из письма, затем{" "}
+            <Link href="/login">войдите</Link>.
           </p>
         ) : (
           <p>
-            ✓ Аккаунт <b>{email.trim()}</b> создан и сразу активен — вы вошли в систему.
+            ✓ Аккаунт <b>{email.trim()}</b> создан и сразу активен — вы вошли в систему.{" "}
+            <Link href="/">Перейти к анализатору →</Link>
           </p>
         )}
       </div>
