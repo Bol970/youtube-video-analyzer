@@ -10,7 +10,7 @@ export default function LoginPage() {
     <div className="page-frame">
       <header className="masthead">
         <h1>Вход</h1>
-        <span className="tag">Войдите, чтобы сохранять историю анализов</span>
+        <span className="tag">Войдите, чтобы сохранять свои разборы</span>
       </header>
 
       <main className="inner">

@@ -14,7 +14,7 @@ export default function AuthBar() {
     <nav className="auth-bar">
       {user ? (
         <>
-          <Link href="/history">Мои анализы</Link>
+          <Link href="/history">Мои разборы</Link>
           <span className="auth-email">{user.email}</span>
           <button type="button" className="btn-mini" onClick={() => signOut()}>
             Выйти

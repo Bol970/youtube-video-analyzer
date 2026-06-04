@@ -52,7 +52,7 @@ export default function HistoryList() {
       .select("id, video_id, mode, question, lang, analysis, created_at")
       .order("created_at", { ascending: false });
     if (selectError) {
-      setError("Не удалось загрузить историю.");
+      setError("Не удалось загрузить разборы.");
     } else {
       setRows((data ?? []) as AnalysisRow[]);
     }
@@ -75,7 +75,7 @@ export default function HistoryList() {
     return (
       <div className="card bevel-out">
         <p className="note">
-          ⓘ История недоступна: не заданы ключи Supabase.
+          ⓘ Раздел недоступен: не заданы ключи Supabase.
         </p>
       </div>
     );
@@ -93,7 +93,7 @@ export default function HistoryList() {
     return (
       <div className="card bevel-out">
         <p>
-          Чтобы видеть историю анализов, <Link href="/login">войдите</Link> или{" "}
+          Чтобы видеть свои разборы, <Link href="/login">войдите</Link> или{" "}
           <Link href="/register">зарегистрируйтесь</Link>.
         </p>
       </div>
@@ -112,7 +112,7 @@ export default function HistoryList() {
     return (
       <div className="card bevel-out">
         <p>
-          Пока пусто. <Link href="/">Сделайте первый анализ →</Link>
+          Пока пусто. <Link href="/">Разобрать первое видео →</Link>
         </p>
       </div>
     );
@@ -120,7 +120,7 @@ export default function HistoryList() {
 
   return (
     <div className="card bevel-out">
-      <span className="ribbon blue">История анализов</span>
+      <span className="ribbon blue">Мои разборы</span>
       <ul className="history-list">
         {rows.map((row) => (
           <li key={row.id} className="history-item bevel-in">

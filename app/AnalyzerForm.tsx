@@ -270,17 +270,17 @@ export default function AnalyzerForm() {
             <div className="note" style={{ marginBottom: 10 }}>
               {user ? (
                 saveStatus === "saving" ? (
-                  "💾 Сохраняю в историю…"
+                  "💾 Сохраняю…"
                 ) : saveStatus === "saved" ? (
                   <>
-                    ✓ Сохранено в <Link href="/history">«Мои анализы»</Link>
+                    ✓ Сохранено в <Link href="/history">«Мои разборы»</Link>
                   </>
                 ) : saveStatus === "error" ? (
-                  "⚠ Не удалось сохранить в историю."
+                  "⚠ Не удалось сохранить разбор."
                 ) : null
               ) : (
                 <>
-                  ⓘ <Link href="/login">Войдите</Link>, чтобы сохранять анализы в историю.
+                  ⓘ <Link href="/login">Войдите</Link>, чтобы сохранять свои разборы.
                 </>
               )}
             </div>
