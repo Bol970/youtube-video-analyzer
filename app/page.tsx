@@ -1,3 +1,4 @@
+import Link from "next/link";
 import AnalyzerForm from "./AnalyzerForm";
 
 export default function Home() {
@@ -7,6 +8,9 @@ export default function Home() {
         <div className="burst">NEW!</div>
         <h1>YouTube Video Analyzer</h1>
         <span className="tag">Транскрипт → ИИ-анализ за один клик</span>
+        <nav style={{ marginTop: 10 }}>
+          <Link href="/register">Регистрация →</Link>
+        </nav>
       </header>
 
       <main className="inner">

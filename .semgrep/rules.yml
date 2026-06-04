@@ -1,0 +1,52 @@
+# Локальный набор правил Semgrep (офлайн — реестр semgrep.dev недоступен в окружении).
+# Покрывает классы уязвимостей, актуальные для этого Next.js-приложения.
+# Запуск:
+#   docker run --rm -v "$PWD":/src -w /src semgrep/semgrep:latest \
+#     semgrep scan --config=.semgrep/rules.yml --exclude=node_modules --exclude=.next --metrics=off
+rules:
+  - id: react-dangerouslysetinnerhtml
+    languages: [typescript, javascript]
+    severity: WARNING
+    message: >
+      Использование dangerouslySetInnerHTML вставляет сырой HTML в DOM. Если строка
+      содержит непроверенный ввод (например, ответ внешнего LLM), это XSS.
+      Убедитесь, что HTML экранируется/санитайзится перед вставкой.
+    metadata:
+      cwe: "CWE-79: Cross-site Scripting (XSS)"
+      owasp: "A03:2021 Injection"
+    pattern: <$EL dangerouslySetInnerHTML={...} />
+
+  - id: nextjs-fetch-with-user-input-ssrf
+    languages: [typescript, javascript]
+    severity: INFO
+    message: >
+      В fetch() подставляется значение из переменной. Если URL формируется из
+      пользовательского ввода без валидации хоста — возможен SSRF.
+    metadata:
+      cwe: "CWE-918: Server-Side Request Forgery (SSRF)"
+      owasp: "A10:2021 SSRF"
+    pattern: fetch(`...${$X}...`, ...)
+
+  - id: hardcoded-api-key
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >
+      Похоже на захардкоженный секрет/ключ в исходном коде. Секреты должны
+      приходить только из переменных окружения.
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2021 Identification and Authentication Failures"
+    patterns:
+      - pattern-regex: '(api[_-]?key|secret|password|token)\s*[:=]\s*["''][A-Za-z0-9_\-]{16,}["'']'
+      - pattern-not-regex: 'process\.env'
+
+  - id: missing-rate-limit-on-route-handler
+    languages: [ts]
+    severity: INFO
+    message: >
+      Публичный route handler без видимого rate-limiting. Эндпоинт проксирует
+      запросы к платным внешним API (Supadata/OpenRouter) — без ограничения
+      частоты возможен абуз и исчерпание квоты/средств.
+    metadata:
+      cwe: "CWE-770: Allocation of Resources Without Limits or Throttling"
+    pattern: export async function POST($REQ) { ... }
