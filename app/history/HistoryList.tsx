@@ -120,7 +120,6 @@ export default function HistoryList() {
 
   return (
     <div className="card bevel-out">
-      <span className="ribbon blue">Мои разборы</span>
       <ul className="history-list">
         {rows.map((row) => (
           <li key={row.id} className="history-item bevel-in">
