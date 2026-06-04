@@ -31,7 +31,6 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
 
   return (
     <div className="card bevel-out">
-      <h2 className="plans-head">Тарифы</h2>
       {reason && <p className="note" style={{ marginBottom: 14 }}>{reason}</p>}
 
       <div className="plans">
