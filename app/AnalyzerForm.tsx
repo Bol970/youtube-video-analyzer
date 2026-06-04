@@ -166,7 +166,6 @@ export default function AnalyzerForm() {
       </ol>
 
       <div className="card bevel-out">
-        <span className="ribbon red">Новый разбор</span>
         <form onSubmit={handleSubmit}>
           <div className="row">
             <div className="grow">
