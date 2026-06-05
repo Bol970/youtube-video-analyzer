@@ -4,11 +4,19 @@
 // Для гостя — ссылки «Войти / Регистрация», для залогиненного — остаток
 // разборов за месяц, email и выход.
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { planTitle } from "@/lib/plans";
 import { useAuth } from "./AuthProvider";
 
 export default function AuthBar() {
+  const router = useRouter();
   const { user, usage, signOut } = useAuth();
+
+  async function handleSignOut() {
+    await signOut();
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <nav className="auth-bar">
@@ -26,7 +34,7 @@ export default function AuthBar() {
           <Link href="/pricing" className="btn-mini">Сменить план</Link>
           <Link href="/history">Мои разборы</Link>
           <span className="auth-email">{user.email}</span>
-          <button type="button" className="btn-mini" onClick={() => signOut()}>
+          <button type="button" className="btn-mini" onClick={handleSignOut}>
             Выйти
           </button>
         </>
