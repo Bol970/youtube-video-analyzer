@@ -27,6 +27,10 @@ const MODE_TITLES: Record<AnalysisMode, string> = {
   qa: "Вопрос-ответ",
 };
 
+function normalizeSearchTerm(value: string): string {
+  return value.trim().replace(/[,()*"\\]/g, " ").replace(/\s+/g, " ");
+}
+
 function formatDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleString("ru-RU", {
@@ -60,19 +64,28 @@ export default function HistoryList() {
     setLoading(true);
     setError(null);
 
+    if (from && to && from > to) {
+      setRows([]);
+      setTotal(0);
+      setError("Дата начала не может быть позже даты окончания.");
+      setLoading(false);
+      return;
+    }
+
     let q = supabase
       .from("analyses")
       .select("id, video_id, mode, question, lang, title, analysis, created_at", {
         count: "exact",
       })
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (from) q = q.gte("created_at", `${from}T00:00:00.000Z`);
     if (to) q = q.lte("created_at", `${to}T23:59:59.999Z`);
-    if (search.trim()) {
+    const term = normalizeSearchTerm(search);
+    if (term) {
       // Подстрочный поиск (ilike) по названию И тексту разбора — работает на
       // любом языке. Убираем символы, ломающие синтаксис or() в PostgREST.
-      const term = search.trim().replace(/[,()*"\\]/g, " ");
       q = q.or(`title.ilike.%${term}%,analysis.ilike.%${term}%`);
     }
     q = q.range(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE - 1);
@@ -108,7 +121,7 @@ export default function HistoryList() {
       if (fetchedTitles.current.has(row.video_id)) return;
       fetchedTitles.current.add(row.video_id);
       fetch(`/api/title?v=${row.video_id}`)
-        .then((r) => r.json())
+        .then((r) => r.json().catch(() => ({})))
         .then((d) => setTitles((prev) => ({ ...prev, [row.video_id]: d?.title ?? null })))
         .catch(() => setTitles((prev) => ({ ...prev, [row.video_id]: null })));
     });

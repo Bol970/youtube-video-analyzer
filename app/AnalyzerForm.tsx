@@ -16,6 +16,8 @@ interface AnalyzeResponse {
   availableLangs: string[];
   truncated: boolean;
   analysis: string;
+  saved?: boolean;
+  warning?: string;
   usage?: { used: number; limit: number; plan: string };
   requestedLang?: string; // что выбрал пользователь (добавляем на клиенте)
 }
@@ -107,7 +109,7 @@ export default function AnalyzerForm() {
         },
         body: JSON.stringify({ url, mode, question, lang }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
       if (res.status === 401 || data?.code === "auth_required") {
         setNeedAuth(true);
       } else if (res.status === 402 || data?.code === "quota_exceeded") {
@@ -286,9 +288,17 @@ export default function AnalyzerForm() {
               </div>
             )}
 
-          <div className="note" style={{ marginBottom: 10 }}>
-            ✓ Сохранено в <Link href="/history">«Мои разборы»</Link>
-          </div>
+          {result.warning && (
+            <div className="error-box" style={{ marginBottom: 10 }}>
+              ⚠ {result.warning}
+            </div>
+          )}
+
+          {result.saved !== false && (
+            <div className="note" style={{ marginBottom: 10 }}>
+              ✓ Сохранено в <Link href="/history">«Мои разборы»</Link>
+            </div>
+          )}
 
           <div className="toolbar">
             <button type="button" className="btn-mini" onClick={handleCopy}>

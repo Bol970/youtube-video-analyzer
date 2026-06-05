@@ -12,7 +12,7 @@ import {
 } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { getSupabaseClient, isSupabaseConfigured } from "@/lib/supabase";
-import { planLimit, monthStartISO, type Plan } from "@/lib/plans";
+import { isPlan, planLimit, monthStartISO, type Plan } from "@/lib/plans";
 
 interface Usage {
   plan: Plan;
@@ -46,14 +46,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUsage(null);
       return;
     }
-    const [{ data: profile }, { count }] = await Promise.all([
-      supabase.from("profiles").select("plan").eq("id", userId).single(),
+    const [
+      { data: profile, error: profileError },
+      { count, error: countError },
+    ] = await Promise.all([
+      supabase.from("profiles").select("plan").eq("id", userId).maybeSingle(),
       supabase
         .from("analyses")
         .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
         .gte("created_at", monthStartISO()),
     ]);
-    const plan = (profile?.plan ?? "free") as Plan;
+    if (profileError || countError) {
+      setUsage(null);
+      return;
+    }
+    const plan = isPlan(profile?.plan) ? profile.plan : "free";
     setUsage({ plan, used: count ?? 0, limit: planLimit(plan) });
   }, [userId]);
 

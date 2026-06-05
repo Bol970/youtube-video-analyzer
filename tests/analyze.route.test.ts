@@ -15,8 +15,12 @@ vi.mock("@/lib/openrouter", async () => {
 const sb = vi.hoisted(() => ({
   user: { id: "u1" } as { id: string } | null,
   userErr: null as unknown,
+  profileErr: null as unknown,
   plan: "free",
   count: 0,
+  countErr: null as unknown,
+  countEq: null as { column: string; value: string } | null,
+  insertErr: null as unknown,
   inserted: [] as unknown[],
 }));
 
@@ -27,12 +31,20 @@ vi.mock("@/lib/supabaseServer", () => ({
       table === "profiles"
         ? {
             select: () => ({
-              eq: () => ({ single: async () => ({ data: { plan: sb.plan } }) }),
+              eq: () => ({
+                maybeSingle: async () => ({ data: { plan: sb.plan }, error: sb.profileErr }),
+              }),
             }),
           }
         : {
-            select: () => ({ gte: async () => ({ count: sb.count, error: null }) }),
+            select: () => ({
+              eq: (column: string, value: string) => {
+                sb.countEq = { column, value };
+                return { gte: async () => ({ count: sb.count, error: sb.countErr }) };
+              },
+            }),
             insert: async (row: unknown) => {
+              if (sb.insertErr) return { error: sb.insertErr };
               sb.inserted.push(row);
               return { error: null };
             },
@@ -61,11 +73,22 @@ function makeReq(
 const VALID_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
 beforeEach(() => {
+  vi.restoreAllMocks();
   vi.clearAllMocks();
+  vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    ok: false,
+    status: 404,
+    json: async () => ({}),
+    text: async () => "",
+  } as unknown as Response);
   sb.user = { id: "u1" };
   sb.userErr = null;
+  sb.profileErr = null;
   sb.plan = "free";
   sb.count = 0;
+  sb.countErr = null;
+  sb.countEq = null;
+  sb.insertErr = null;
   sb.inserted = [];
 });
 
@@ -87,6 +110,12 @@ describe("POST /api/analyze — аутентификация и квота", () 
     const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
     expect(res.status).toBe(402);
     expect((await res.json()).code).toBe("quota_exceeded");
+  });
+
+  it("503, если не удалось проверить лимит", async () => {
+    sb.countErr = new Error("db unavailable");
+    const res = await POST(makeReq({ url: VALID_URL, mode: "summary" }));
+    expect(res.status).toBe(503);
   });
 });
 
@@ -124,9 +153,33 @@ describe("POST /api/analyze — основной поток", () => {
     expect(data).toMatchObject({
       videoId: "dQw4w9WgXcQ",
       analysis: "готовый разбор",
+      saved: true,
       usage: { used: 1, limit: 10, plan: "free" },
     });
+    expect(sb.countEq).toEqual({ column: "user_id", value: "u1" });
     expect(sb.inserted).toHaveLength(1); // разбор сохранён на сервере
+  });
+
+  it("возвращает готовый разбор с предупреждением, если история не сохранилась", async () => {
+    vi.mocked(fetchTranscript).mockResolvedValue({
+      plainText: "текст",
+      timedText: "[0:00] текст",
+      lang: "ru",
+      availableLangs: ["ru"],
+    });
+    vi.mocked(chatCompletion).mockResolvedValue("готовый разбор");
+    sb.insertErr = new Error("insert failed");
+
+    const res = await POST(makeReq({ url: VALID_URL, mode: "summary", lang: "ru" }));
+    expect(res.status).toBe(200);
+    const data = await res.json();
+    expect(data).toMatchObject({
+      analysis: "готовый разбор",
+      saved: false,
+      usage: { used: 0, limit: 10, plan: "free" },
+    });
+    expect(data.warning).toContain("не сохранился");
+    expect(sb.inserted).toHaveLength(0);
   });
 
   it("пробрасывает статус ошибки от Supadata", async () => {

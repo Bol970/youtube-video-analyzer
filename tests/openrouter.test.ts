@@ -61,4 +61,20 @@ describe("chatCompletion", () => {
     );
     await expect(chatCompletion(MESSAGES)).rejects.toBeInstanceOf(OpenRouterError);
   });
+
+  it("даёт понятную ошибку на некорректный JSON от OpenRouter", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new Error("bad json");
+      },
+      text: async () => "",
+    } as unknown as Response);
+
+    await expect(chatCompletion(MESSAGES)).rejects.toMatchObject({
+      status: 502,
+      message: expect.stringContaining("некорректный ответ"),
+    });
+  });
 });

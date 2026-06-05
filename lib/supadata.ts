@@ -103,21 +103,34 @@ export async function fetchTranscript(
       );
     }
 
-    const data = await res.json();
+    let data: unknown;
+    try {
+      data = await res.json();
+    } catch {
+      throw new SupadataError(
+        "Supadata вернул некорректный ответ. Попробуйте ещё раз позже.",
+        502
+      );
+    }
 
     // Длинные видео Supadata может отдавать асинхронным заданием (jobId).
-    if (data?.jobId && !data?.content) {
+    if (isRecord(data) && data.jobId && !data.content) {
       throw new SupadataError(
         "Видео слишком длинное — Supadata обрабатывает его в фоне. Попробуйте видео покороче.",
         202
       );
     }
 
-    if (Array.isArray(data?.availableLangs)) availableLangs = data.availableLangs;
+    if (isRecord(data) && Array.isArray(data.availableLangs)) {
+      availableLangs = data.availableLangs.filter(
+        (item): item is string => typeof item === "string"
+      );
+    }
 
-    const segments: TranscriptSegment[] = Array.isArray(data?.content)
-      ? data.content
-      : [];
+    const segments: TranscriptSegment[] =
+      isRecord(data) && Array.isArray(data.content) ? data.content : [];
+    const responseLang =
+      isRecord(data) && typeof data.lang === "string" ? data.lang : lang ?? "";
 
     if (segments.length > 0) {
       const plainText = segments
@@ -131,17 +144,17 @@ export async function fetchTranscript(
       return {
         plainText,
         timedText,
-        lang: data.lang ?? lang ?? "",
+        lang: responseLang,
         availableLangs,
       };
     }
 
     // На случай, если пришёл уже простой текст (text=true-подобный ответ).
-    if (typeof data?.content === "string" && data.content.trim()) {
+    if (isRecord(data) && typeof data.content === "string" && data.content.trim()) {
       return {
         plainText: data.content,
         timedText: data.content,
-        lang: data.lang ?? lang ?? "",
+        lang: responseLang,
         availableLangs,
       };
     }
@@ -162,4 +175,8 @@ export async function fetchTranscript(
       hint,
     404
   );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

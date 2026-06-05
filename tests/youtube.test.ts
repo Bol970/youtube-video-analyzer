@@ -43,6 +43,8 @@ describe("extractVideoId", () => {
     expect(extractVideoId("   ")).toBeNull();
     expect(extractVideoId("просто текст")).toBeNull();
     expect(extractVideoId("https://vimeo.com/123456")).toBeNull();
+    expect(extractVideoId(`https://notyoutube.com/watch?v=${ID}`)).toBeNull();
+    expect(extractVideoId(`https://youtube.com.evil.test/watch?v=${ID}`)).toBeNull();
     expect(extractVideoId("https://www.youtube.com/")).toBeNull();
   });
 

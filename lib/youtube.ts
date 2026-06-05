@@ -30,7 +30,7 @@ export function extractVideoId(input: string): string | null {
     return isValidId(id) ? id : null;
   }
 
-  if (host.endsWith("youtube.com") || host.endsWith("youtube-nocookie.com")) {
+  if (isYouTubeHost(host) || isYouTubeNoCookieHost(host)) {
     const v = url.searchParams.get("v");
     if (v && isValidId(v)) return v;
 
@@ -42,6 +42,14 @@ export function extractVideoId(input: string): string | null {
   }
 
   return null;
+}
+
+function isYouTubeHost(host: string): boolean {
+  return host === "youtube.com" || host.endsWith(".youtube.com");
+}
+
+function isYouTubeNoCookieHost(host: string): boolean {
+  return host === "youtube-nocookie.com" || host.endsWith(".youtube-nocookie.com");
 }
 
 function isValidId(id: string): boolean {

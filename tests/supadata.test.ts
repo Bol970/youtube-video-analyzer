@@ -74,4 +74,20 @@ describe("fetchTranscript", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(jsonResponse({ jobId: "abc" }));
     await expect(fetchTranscript("dQw4w9WgXcQ")).rejects.toMatchObject({ status: 202 });
   });
+
+  it("даёт понятную ошибку на некорректный JSON от Supadata", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => {
+        throw new Error("bad json");
+      },
+      text: async () => "",
+    } as unknown as Response);
+
+    await expect(fetchTranscript("dQw4w9WgXcQ")).rejects.toMatchObject({
+      status: 502,
+      message: expect.stringContaining("некорректный ответ"),
+    });
+  });
 });

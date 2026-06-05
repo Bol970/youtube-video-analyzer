@@ -71,12 +71,31 @@ export async function chatCompletion(messages: ChatMessage[]): Promise<string> {
     );
   }
 
-  const data = await res.json();
-  const content: string | undefined = data?.choices?.[0]?.message?.content;
+  let data: unknown;
+  try {
+    data = await res.json();
+  } catch {
+    throw new OpenRouterError(
+      "OpenRouter вернул некорректный ответ. Попробуйте ещё раз позже.",
+      502
+    );
+  }
+  const content =
+    isRecord(data) &&
+    Array.isArray(data.choices) &&
+    isRecord(data.choices[0]) &&
+    isRecord(data.choices[0].message) &&
+    typeof data.choices[0].message.content === "string"
+      ? data.choices[0].message.content
+      : undefined;
 
   if (!content || !content.trim()) {
     throw new OpenRouterError("LLM вернул пустой ответ. Попробуйте ещё раз.", 502);
   }
 
   return content.trim();
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
 }

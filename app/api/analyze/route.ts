@@ -78,19 +78,32 @@ export async function POST(req: NextRequest) {
   }
 
   // 1. Проверка квоты: число разборов за текущий месяц против лимита плана.
-  const { data: profile } = await supabase
+  const { data: profile, error: profileErr } = await supabase
     .from("profiles")
     .select("plan")
     .eq("id", user.id)
-    .single();
+    .maybeSingle();
+  if (profileErr) {
+    return NextResponse.json(
+      { error: "Не удалось проверить ваш тариф. Попробуйте ещё раз." },
+      { status: 503 }
+    );
+  }
   const plan = profile?.plan ?? "free";
   const limit = planLimit(plan);
 
   const { count, error: countErr } = await supabase
     .from("analyses")
     .select("id", { count: "exact", head: true })
+    .eq("user_id", user.id)
     .gte("created_at", monthStartISO());
-  const used = countErr ? 0 : count ?? 0;
+  if (countErr) {
+    return NextResponse.json(
+      { error: "Не удалось проверить лимит разборов. Попробуйте ещё раз." },
+      { status: 503 }
+    );
+  }
+  const used = count ?? 0;
 
   if (used >= limit) {
     return NextResponse.json(
@@ -139,7 +152,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Сохраняем разбор от имени пользователя (RLS: user_id = auth.uid()).
     //    Это же и есть единица учёта квоты.
-    await supabase.from("analyses").insert({
+    const { error: insertErr } = await supabase.from("analyses").insert({
       user_id: user.id,
       video_id: videoId,
       mode,
@@ -148,6 +161,21 @@ export async function POST(req: NextRequest) {
       title,
       analysis,
     });
+    if (insertErr) {
+      console.error("Не удалось сохранить разбор:", insertErr);
+      return NextResponse.json({
+        videoId,
+        mode,
+        lang: transcript.lang,
+        availableLangs: transcript.availableLangs,
+        truncated,
+        analysis,
+        saved: false,
+        warning:
+          "Разбор готов, но не сохранился в истории. Скопируйте или скачайте результат сейчас.",
+        usage: { used, limit, plan },
+      });
+    }
 
     return NextResponse.json({
       videoId,
@@ -156,6 +184,7 @@ export async function POST(req: NextRequest) {
       availableLangs: transcript.availableLangs,
       truncated,
       analysis,
+      saved: true,
       usage: { used: used + 1, limit, plan },
     });
   } catch (err) {
