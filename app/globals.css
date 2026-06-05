@@ -544,6 +544,30 @@ textarea {
 }
 
 /* ===== Подписки / счётчик квоты ===== */
+/* Красная кнопка «Новый разбор» в шапке */
+.btn-new {
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: 13px;
+  letter-spacing: 0.5px;
+  color: #fff;
+  background: var(--red);
+  padding: 7px 14px;
+  border: 2px solid #000;
+  box-shadow: 2px 2px 0 #000;
+  text-decoration: none;
+  display: inline-block;
+  white-space: nowrap;
+}
+.btn-new:hover {
+  background: #e01e2b;
+}
+.btn-new:active {
+  transform: translate(2px, 2px);
+  box-shadow: 0 0 0 #000;
+}
+
 .auth-quota {
   margin-right: auto;
   font-family: Arial, Helvetica, sans-serif;

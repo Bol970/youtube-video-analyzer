@@ -14,6 +14,7 @@ export default function AuthBar() {
     <nav className="auth-bar">
       {user ? (
         <>
+          <Link href="/" className="btn-new">+ Новый разбор</Link>
           {usage && (
             <span className="auth-quota">
               Разборов: <b>{Math.min(usage.used, usage.limit)}</b> из {usage.limit}

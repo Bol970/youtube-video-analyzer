@@ -3,11 +3,13 @@
 // Форма выбора тарифа (демо: реальная оплата не подключена — выбор просто
 // включает план в profiles, лимит разборов в месяц обновляется сразу).
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { ALL_PLANS, type Plan } from "@/lib/plans";
 import { getSupabaseClient } from "@/lib/supabase";
 import { useAuth } from "./AuthProvider";
 
 export default function SubscriptionPlans({ reason }: { reason?: string }) {
+  const router = useRouter();
   const { user, usage, refreshUsage } = useAuth();
   const [busy, setBusy] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -23,10 +25,13 @@ export default function SubscriptionPlans({ reason }: { reason?: string }) {
       .eq("id", user.id);
     if (updateError) {
       setError("Не удалось включить тариф. Попробуйте ещё раз.");
+      setBusy(null);
     } else {
       await refreshUsage();
+      // После смены тарифа возвращаемся к разбору на главной.
+      router.push("/");
+      router.refresh();
     }
-    setBusy(null);
   }
 
   return (
