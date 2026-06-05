@@ -40,7 +40,6 @@ export default function AuthBar() {
         </>
       ) : (
         <>
-          <span className="auth-label">Аккаунт:</span>
           <Link href="/login">Войти</Link>
           <Link href="/register">Регистрация</Link>
         </>
